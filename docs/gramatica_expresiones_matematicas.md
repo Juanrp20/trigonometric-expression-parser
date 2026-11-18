@@ -1,0 +1,62 @@
+# Gramática de expresiones matemáticas
+
+La gramática EBNF de esta etapa está en
+[`gramatica/expresiones_matematicas.txt`](../gramatica/expresiones_matematicas.txt).
+Su símbolo inicial es `<Inicio>`; la entrada completa debe contener una sola
+expresión y terminar después de ella. En la notación, `{ ... }` indica cero o
+más repeticiones y `[ ... ]` una aparición opcional.
+
+## Reglas y precedencia
+
+De menor a mayor precedencia:
+
+1. `<Inicio>` y `<Expr>`: una expresión formada por términos con sumas y
+   restas. Las operaciones sucesivas se agrupan por la izquierda.
+2. `<Termino>`: factores unidos por multiplicaciones o divisiones, también
+   agrupadas por la izquierda.
+3. `<Unario>`: negación mediante `-`, que puede repetirse.
+4. `<Potencia>`: un primario con exponente opcional. El exponente es un
+   `<Unario>`, lo que permite exponentes negativos y hace que las potencias
+   se agrupen por la derecha. Por tanto, `2^3^2` significa `2^(3^2)`,
+   `-2^2` significa `-(2^2)` y `2^-2` significa `2^(-2)`.
+5. `<Primario>`: número, variable, expresión entre paréntesis o función
+   aplicada a una expresión. Los paréntesis permiten alterar la precedencia
+   y anidar expresiones.
+6. `<Funcion>`: `sin`, `sen`, `cos` o `tan`, con exactamente un argumento
+   entre paréntesis. `sin` y `sen` designan la misma función seno; los
+   argumentos trigonométricos se interpretarán en radianes.
+
+## Contrato léxico para etapas posteriores
+
+- `NUMBER` representa un entero o decimal con dígitos antes y, si hay punto,
+  después de este: `[0-9]+(\.[0-9]+)?`. Es la forma ya reconocida por Toy;
+  `.5`, `5.` y la notación científica quedan fuera de esta gramática.
+- `ID` representa un identificador que comienza con letra ASCII o `_` y
+  continúa con letras ASCII, dígitos o `_`. Se reserva exactamente `sin`,
+  `sen`, `cos` y `tan` para las funciones; nombres como `seno` siguen siendo
+  identificadores. Las palabras reservadas de Toy no se reservan aquí.
+- Los símbolos entre comillas son terminales distintos de `NUMBER` e `ID`.
+  En particular, el futuro léxico matemático debe clasificar los cuatro
+  nombres de función antes que `ID`. La verificación LL(1) depende de que
+  estas clases no se solapen.
+- Se admiten espacios entre tokens. El futuro modo matemático no debe tratar
+  `--` como comentario de Toy: `1--2` representa `1 - (-2)`.
+
+La gramática describe sintaxis; la validación de valores numéricos, la
+solicitud de variables y los errores de evaluación corresponden a etapas
+posteriores. El punto medio `·` usado en el enunciado representa multiplicación;
+su representación textual en este lenguaje es `*`.
+
+## Verificación LL(1)
+
+El verificador existente expande las repeticiones y opciones a reglas BNF,
+calcula PRIMERO y SIGUIENTE y comprueba los conjuntos de selección de cada
+alternativa. Para reproducir la verificación:
+
+```sh
+make toy_ll1
+./toy_ll1 gramatica/expresiones_matematicas.txt --sets
+```
+
+La salida debe indicar `ninguno` para conflictos. La comprobación presupone
+el contrato léxico descrito arriba; el lexer de Toy aún no lo implementa.

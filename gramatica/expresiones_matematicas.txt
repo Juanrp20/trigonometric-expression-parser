@@ -1,0 +1,7 @@
+<Inicio> -> <Expr>
+<Expr> -> <Termino> { ( "+" | "-" ) <Termino> }
+<Termino> -> <Unario> { ( "*" | "/" ) <Unario> }
+<Unario> -> "-" <Unario> | <Potencia>
+<Potencia> -> <Primario> [ "^" <Unario> ]
+<Primario> -> NUMBER | ID | "(" <Expr> ")" | <Funcion> "(" <Expr> ")"
+<Funcion> -> "sin" | "sen" | "cos" | "tan"

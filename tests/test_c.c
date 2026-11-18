@@ -253,6 +253,23 @@ static void test_precedencia(void) {
 }
 
 static void test_ll1(void) {
+    char *matematica = read_file_text("gramatica/expresiones_matematicas.txt");
+    assert(matematica != NULL);
+    LL1Grammar g_mat;
+    ll1_grammar_parse(&g_mat, matematica);
+    ll1_grammar_calculate(&g_mat);
+    LL1ConflictList confs_mat;
+    ll1_grammar_find_conflicts(&g_mat, &confs_mat);
+    assert(confs_mat.count == 0);
+    assert(g_mat.rule_count > 0 && strcmp(g_mat.rules[0].lhs, "<Inicio>") == 0);
+    assert(set_contains(&g_mat.rules[0].first, "NUMBER"));
+    assert(set_contains(&g_mat.rules[0].first, "ID"));
+    assert(set_contains(&g_mat.rules[0].first, "\"sen\""));
+    assert(set_contains(&g_mat.rules[0].follow, "$"));
+    ll1_conflicts_free(&confs_mat);
+    ll1_grammar_free(&g_mat);
+    free(matematica);
+
     char *corr = read_file_text("gramatica/toy_gramatica.txt");
     assert(corr != NULL);
     LL1Grammar g_corr;
