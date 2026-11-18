@@ -17,16 +17,19 @@
 \vspace*{3cm}
 {\Large Trabajo Práctico 3 de Compiladores\par}
 \vspace{1cm}
-{\LARGE\bfseries Analizador y Evaluador de Expresiones Trigonométricas\par}
+{\LARGE\bfseries Analizador y Evaluador de Expresiones Trigonométricas\\[0.3cm] \textemdash{} Trabajo Práctico 3\par}
 \vspace{2cm}
 {\large Informe técnico\par}
-\vspace{3cm}
+\vspace{2cm}
 \begin{tabular}{ll}
+Estudiantes: & Juan rodriguez \\
+             & Manuel Beleño \\
+             & Gabriela Garcia \\
+             & Josue fernandez \\[0.5cm]
 Asignatura: & Compiladores \\
-Estudiantes: & \underline{\hspace{7cm}} \\
 Profesor: & \underline{\hspace{7cm}} \\
-Institución: & \underline{\hspace{7cm}} \\
-Fecha: & \underline{\hspace{7cm}} \\
+Institución: & Universidad del Magdalena \\
+Fecha: & 21 de noviembre de 2026 \\
 \end{tabular}
 \vfill
 \end{titlepage}
@@ -56,7 +59,7 @@ Los no terminales se escriben entre ángulos. Los terminales son \texttt{NUMBER}
 
 La precedencia aumenta desde suma y resta, multiplicación y división, negación unaria, hasta potencia y primarios. Las primeras operaciones se agrupan por la izquierda. La potencia se agrupa por la derecha: \verb|2^3^2| equivale a \verb|2^(3^2)|. La potencia precede a la negación: \verb|-2^2| equivale a \verb|-(2^2)|; también se admite \verb|2^-2|. Los paréntesis alteran el agrupamiento. \texttt{sen} es un alias de \texttt{sin}; todas las funciones reciben una expresión entre paréntesis y operan en radianes.
 \section{Verificación LL(1)}
-El verificador heredado expande opciones y repeticiones a producciones auxiliares, calcula anulabilidad, PRIMERO y SIGUIENTE por punto fijo y compara los conjuntos de selección de las alternativas. La orden \texttt{./toy\_ll1 gramatica/expresiones\_matematicas.txt --sets} produjo \texttt{ninguno}, es decir, cero conflictos detectados. Se presupone la clasificación léxica disjunta de las funciones e \texttt{ID}.
+El verificador heredado expande opciones y repeticiones a producciones auxiliares, calcula anulabilidad, PRIMERO y SIGUIENTE por punto fijo y compara los conjuntos de selección de las alternativas. La orden \verb|./toy_ll1 gramatica/expresiones_matematicas.txt --sets| produjo \texttt{ninguno}, es decir, cero conflictos detectados. Se presupone la clasificación léxica disjunta de las funciones e \texttt{ID}.
 
 Los conjuntos principales obtenidos son los siguientes. Se escribe \texttt{\$} para fin de entrada y F para \{sin, sen, cos, tan\}.
 \begin{center}
@@ -73,7 +76,7 @@ Funcion & F & \{ ( \} \\\bottomrule
 \end{center}
 Las alternativas de primario tienen comienzos distintos, y los conjuntos de selección de las reglas auxiliares son disjuntos. La tabla predictiva completa no es necesaria para el reconocedor recursivo utilizado.
 \section{Análisis léxico}
-\texttt{lexer\_init\_matematico} selecciona el modo matemático; \texttt{lexer\_init} conserva Toy. El lector reconoce operadores, paréntesis, números, identificadores y las cuatro funciones, con línea y columna. Los enteros y decimales de una expresión siguen el patrón \verb|[0-9]+(\.[0-9]+)?|; no se aceptan \texttt{.5}, \texttt{5.} ni exponentes en literales de expresión. Los identificadores admiten letras ASCII, dígitos tras el primer carácter y guion bajo. El maximal munch distingue \texttt{sin} de \texttt{sinus}. En modo matemático \texttt{--} son dos signos negativos, no un comentario. Un carácter inválido o un decimal mal formado produce un token de error.
+\texttt{lexer\_init\_matematico} selecciona el modo matemático; \texttt{lexer\_init} conserva Toy. El lector reconoce operadores, paréntesis, números, identificadores y las cuatro funciones, con línea y columna. Los enteros y decimales de una expresión siguen el patrón \verb|[0-9]+(\.[0-9]+)?|; no se aceptan \texttt{.5}, \texttt{5.} ni exponentes en literales de expresión. Los identificadores admiten letras ASCII, dígitos tras el primer carácter y guion bajo. El reconocimiento de máxima coincidencia distingue \texttt{sin} de \texttt{sinus}. En modo matemático \verb|--| son dos signos negativos, no un comentario. Un carácter inválido o un decimal mal formado produce un token de error.
 \section{Análisis sintáctico}
 \texttt{parser\_expr.c} utiliza un token de preanálisis. Las funciones \texttt{expr}, \texttt{termino}, \texttt{unario}, \texttt{potencia}, \texttt{primario} y \texttt{funcion} corresponden a las reglas de la gramática. Los bucles de suma y producto construyen nodos sucesivos por la izquierda; la recursión del exponente construye el subárbol derecho. El punto de entrada exige EOF. Los errores informan posición, token encontrado y elemento esperado cuando corresponde. Se rechazan, entre otros, \texttt{sin()}, \texttt{2+} y texto sobrante.
 \section{Árbol de sintaxis abstracta}

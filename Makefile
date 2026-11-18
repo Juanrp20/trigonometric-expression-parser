@@ -5,11 +5,11 @@ ifeq ($(OS),Windows_NT)
     # En Windows (MinGW), libasan y libubsan normalmente no vienen por defecto
     DEBUG_FLAGS = -Wall -Wextra -std=c99 -pedantic -Iinclude -g
     EXE = .exe
-    RM = del /Q /F
-    RUN_TEST = $(TEST_BIN)
-    RUN_EXPR_TEST = $(TEST_EXPR_BIN)
-    RUN_EVAL_TEST = $(TEST_EVAL_BIN)
-    RUN_CONSOLE_TEST = $(TEST_CONSOLE_BIN)
+    RM = cmd /C del /Q /F
+    RUN_TEST = cmd /C $(TEST_BIN)
+    RUN_EXPR_TEST = cmd /C $(TEST_EXPR_BIN)
+    RUN_EVAL_TEST = cmd /C $(TEST_EVAL_BIN)
+    RUN_CONSOLE_TEST = cmd /C $(TEST_CONSOLE_BIN)
 else
     DEBUG_FLAGS = -Wall -Wextra -std=c99 -pedantic -Iinclude -g -fsanitize=address,undefined
     EXE =
@@ -42,6 +42,12 @@ TEST_CONSOLE_BIN = test_consola_expr$(EXE)
 TARGET_EXPR = calculadora_expr$(EXE)
 
 all: $(TARGET) $(TARGET_LL1) $(TARGET_EXPR)
+
+ifeq ($(OS),Windows_NT)
+calculadora_expr: $(TARGET_EXPR)
+toy_c: $(TARGET)
+toy_ll1: $(TARGET_LL1)
+endif
 
 $(TARGET): $(SRC) $(MAIN_SRC)
 	$(CC) $(CFLAGS) -o $@ $(SRC) $(MAIN_SRC)
@@ -76,7 +82,7 @@ test: $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN)
 	$(RUN_CONSOLE_TEST)
 
 clean:
-	$(RM) $(TARGET) $(TARGET_LL1) $(TARGET_EXPR) $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN)
+	-$(RM) $(TARGET) $(TARGET_LL1) $(TARGET_EXPR) $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN)
 
 .PHONY: all debug test clean
 

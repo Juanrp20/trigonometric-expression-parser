@@ -36,7 +36,7 @@ toy-programming-language/
 
 ## 2. Estructuras de Datos
 
-### 2.1 Tokens ([`include/token.h`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/include/token.h))
+### 2.1 Tokens ([`include/token.h`](include/token.h))
 ```c
 typedef enum {
     TOK_EOF = 0,
@@ -60,7 +60,7 @@ typedef struct {
 } Token;
 ```
 
-### 2.2 AST y Tagged Unions ([`include/ast.h`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/include/ast.h))
+### 2.2 AST y Tagged Unions ([`include/ast.h`](include/ast.h))
 El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 - **`ASTExpr`**: Literales (`number`, `string`, `bool`), identificadores (`id`), paréntesis (`paren`), operaciones binarias (`binary`), unarios (`unary_minus`, `unary_not`) y llamadas a función (`call`).
 - **`ASTStmt`**: Estructuras de control (`if`, `while`, `for`), salidas (`print`, `println`), declaraciones (`local`), asignaciones (`assign`), invocaciones como sentencia (`call_stmt`) y retornos (`ret`).
@@ -69,7 +69,7 @@ El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 
 ---
 
-## 3. Módulo Lexer ([`src/lexer.c`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/src/lexer.c))
+## 3. Módulo Lexer ([`src/lexer.c`](src/lexer.c))
 
 - Procesa el código fuente caracter a caracter preservando el conteo de `line` y `col`.
 - Implementa comentarios con doble guion (`--`).
@@ -83,7 +83,7 @@ El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 
 ---
 
-## 4. Módulo Parser ([`src/parser.c`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/src/parser.c))
+## 4. Módulo Parser ([`src/parser.c`](src/parser.c))
 
 - Analizador sintáctico descendente recursivo con un token de preanálisis (`la`).
 - Usa `setjmp`/`longjmp` para interrumpir el análisis ante errores y limpiar memoria sin fallos de segmentación.
@@ -93,7 +93,7 @@ El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 
 ---
 
-## 5. Gestión de Memoria ([`src/arena.c`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/src/arena.c))
+## 5. Gestión de Memoria ([`src/arena.c`](src/arena.c))
 
 - Implementa un asignador de memoria por arena (`Arena`).
 - Toda la memoria asignada para el AST y cadenas dinámicas se registra de forma centralizada.
@@ -102,11 +102,11 @@ El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 
 ---
 
-## 6. Módulo Verificador LL(1) ([`src/ll1.c`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/src/ll1.c) / [`src/set.c`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/src/set.c))
+## 6. Módulo Verificador LL(1) ([`src/ll1.c`](src/ll1.c) / [`src/set.c`](src/set.c))
 
 - Escanea y analiza gramáticas en notación EBNF.
 - Expande constructos `{}` (repetición) y `[]` (opcionalidad) a reglas auxiliares `<NT_auxN>` en BNF puro.
-- Implementa conjuntos dinámicos de cadenas ordenadas ([`StringSet`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/include/set.h#L6-L10)).
+- Implementa conjuntos dinámicos de cadenas ordenadas ([`StringSet`](include/set.h#L6-L10)).
 - Calcula conjuntos de punto fijo:
   - `NULLABLE`: no terminales que pueden derivar la cadena vacía $\varepsilon$.
   - `PRIMERO`: símbolos terminales iniciales derivados de cada símbolo o secuencia.
@@ -115,18 +115,18 @@ El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 
 ---
 
-## 7. Suite de Pruebas ([`tests/test_c.c`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/tests/test_c.c))
+## 7. Suite de Pruebas ([`tests/test_c.c`](tests/test_c.c))
 
 La suite original contiene nueve grupos de pruebas; la ejecución final de esos grupos pasó. No se midió cobertura:
 1. `test_lexer_basicos`: palabras reservadas, operadores, números, cadenas y comentarios.
 2. `test_lexer_errores`: validación de los 7 mensajes de error léxico exactos.
-3. `test_parser_ok`: análisis sintáctico de [`ejemplos/ok_minimo.toy`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/ejemplos/ok_minimo.toy) y [`ejemplos/ok_completo.toy`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/ejemplos/ok_completo.toy).
+3. `test_parser_ok`: análisis sintáctico de [`ejemplos/ok_minimo.toy`](ejemplos/ok_minimo.toy) y [`ejemplos/ok_completo.toy`](ejemplos/ok_completo.toy).
 4. `test_parser_invalidos`: rechazo de 15 programas sintácticamente incorrectos.
 5. `test_precedencia`: verificación de jerarquía y asociatividad de operadores.
 6. `test_ll1`: cálculo de conjuntos y verificación de 0 conflictos en gramática corregida y 2 conflictos en gramática original.
-7. `test_readme_ejemplo`: extracción y análisis sintáctico del código de ejemplo del [README.md](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/README.md).
-8. `test_apendice_gramatica_original`: verificación de la gramática original documentada en el apéndice de [docs/gramatica_formal_del_lenguaje_toy.md](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/docs/gramatica_formal_del_lenguaje_toy.md).
-9. `test_afd_especificacion`: simulación de transiciones del AFD formal documentado en [docs/especificacion_y_diseno_formal_del_lenguaje_toy.md](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/docs/especificacion_y_diseno_formal_del_lenguaje_toy.md).
+7. `test_readme_ejemplo`: extracción y análisis sintáctico del código de ejemplo del [README.md](README.md).
+8. `test_apendice_gramatica_original`: verificación de la gramática original documentada en el apéndice de [docs/gramatica_formal_del_lenguaje_toy.md](docs/gramatica_formal_del_lenguaje_toy.md).
+9. `test_afd_especificacion`: simulación de transiciones del AFD formal documentado en [docs/especificacion_y_diseno_formal_del_lenguaje_toy.md](docs/especificacion_y_diseno_formal_del_lenguaje_toy.md).
 
 ---
 

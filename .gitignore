@@ -6,3 +6,16 @@
 /test_evaluador_expr.exe
 /test_consola_expr
 /test_consola_expr.exe
+/toy_c
+/toy_c.exe
+/toy_ll1
+/toy_ll1.exe
+/test_c
+/test_c.exe
+/.idea/
+*.iml
+*.o
+/docs/*.aux
+/docs/*.log
+/docs/*.out
+/docs/*.toc
