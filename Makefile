@@ -7,11 +7,13 @@ ifeq ($(OS),Windows_NT)
     EXE = .exe
     RM = del /Q /F
     RUN_TEST = $(TEST_BIN)
+    RUN_EXPR_TEST = $(TEST_EXPR_BIN)
 else
     DEBUG_FLAGS = -Wall -Wextra -std=c99 -pedantic -Iinclude -g -fsanitize=address,undefined
     EXE =
     RM = rm -f
     RUN_TEST = ./$(TEST_BIN)
+    RUN_EXPR_TEST = ./$(TEST_EXPR_BIN)
 endif
 
 SRC = src/token.c src/lexer.c src/arena.c src/ast.c src/parser.c
@@ -19,10 +21,13 @@ LL1_SRC = src/set.c src/ll1.c
 MAIN_SRC = src/main.c
 MAIN_LL1_SRC = src/main_ll1.c
 TEST_SRC = tests/test_c.c
+EXPR_SRC = src/token.c src/lexer.c src/arena.c src/ast.c src/parser_expr.c
+TEST_EXPR_SRC = tests/test_parser_expr.c
 
 TARGET = toy_c$(EXE)
 TARGET_LL1 = toy_ll1$(EXE)
 TEST_BIN = test_c$(EXE)
+TEST_EXPR_BIN = test_parser_expr$(EXE)
 
 all: $(TARGET) $(TARGET_LL1)
 
@@ -39,11 +44,15 @@ debug: $(SRC) $(LL1_SRC) $(MAIN_SRC) $(MAIN_LL1_SRC)
 $(TEST_BIN): $(SRC) $(LL1_SRC) $(TEST_SRC)
 	$(CC) $(DEBUG_FLAGS) -o $@ $(SRC) $(LL1_SRC) $(TEST_SRC)
 
-test: $(TEST_BIN)
+$(TEST_EXPR_BIN): $(EXPR_SRC) $(TEST_EXPR_SRC)
+	$(CC) $(DEBUG_FLAGS) -o $@ $(EXPR_SRC) $(TEST_EXPR_SRC)
+
+test: $(TEST_BIN) $(TEST_EXPR_BIN)
 	$(RUN_TEST)
+	$(RUN_EXPR_TEST)
 
 clean:
-	$(RM) $(TARGET) $(TARGET_LL1) $(TEST_BIN)
+	$(RM) $(TARGET) $(TARGET_LL1) $(TEST_BIN) $(TEST_EXPR_BIN)
 
 .PHONY: all debug test clean
 

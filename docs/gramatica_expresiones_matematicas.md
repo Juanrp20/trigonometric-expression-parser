@@ -62,3 +62,20 @@ La salida debe indicar `ninguno` para conflictos. El modo matemático se activa
 con `lexer_init_matematico`; `lexer_init` conserva el comportamiento de Toy.
 Los nombres de función se emiten como `TOK_SIN`, `TOK_SEN`, `TOK_COS` y
 `TOK_TAN`, y los identificadores ordinarios como `TOK_ID`.
+
+## Reconocedor descendente
+
+`parser_expr_init` prepara el lexer matemático y la arena del parser;
+`parser_expr_parse` reconoce una expresión completa y devuelve su `ASTExpr`, o
+`NULL` y un diagnóstico en `error_msg` si encuentra un error léxico o
+sintáctico. Se realiza una llamada a `parser_expr_parse` por inicialización.
+`parser_expr_destroy` libera el token de preanálisis, el lexer y la arena;
+el AST solo es válido hasta esa llamada.
+
+Las funciones internas siguen las reglas de la gramática: `expr`, `termino`,
+`unario`, `potencia`, `primario` y `funcion`. Las repeticiones de suma,
+resta, multiplicación y división construyen nodos por la izquierda; la
+recursión desde el exponente construye potencias por la derecha. El punto de
+entrada exige `TOK_EOF`. El AST reutiliza las estructuras de Toy y conserva
+operandos y operadores para una etapa posterior; este módulo no evalúa ni
+solicita valores de variables.
