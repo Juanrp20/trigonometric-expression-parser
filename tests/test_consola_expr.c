@@ -1,4 +1,5 @@
 #include "consola_expr.h"
+#include "expr_limites.h"
 #include <assert.h>
 #include <locale.h>
 #include <math.h>
@@ -88,6 +89,13 @@ int main(void) {
     assert(r.codigo == 3 && strstr(r.errores, "Fin de entrada"));
     valido("2+3*4", "Resultado: 14\n");
     valido("x\n3.5", "Resultado: 3.5\n");
+    {
+        char expresion[EXPR_PROFUNDIDAD_MAX * 2 + 8];
+        for (int i = 0; i < EXPR_PROFUNDIDAD_MAX; i++) { expresion[2*i] = '1'; expresion[2*i+1] = '+'; }
+        expresion[2*EXPR_PROFUNDIDAD_MAX] = '1'; expresion[2*EXPR_PROFUNDIDAD_MAX+1] = '\n'; expresion[2*EXPR_PROFUNDIDAD_MAX+2] = '\0';
+        r = ejecutar(expresion);
+        assert(r.codigo != 0 && strstr(r.errores, "profundidad"));
+    }
     {
         char nombre[601], entrada[1300];
         nombre[0] = '_';

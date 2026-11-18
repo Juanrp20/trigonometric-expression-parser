@@ -100,6 +100,7 @@ Token token_create(TokenKind kind, const char *lexeme, int line, int col) {
             tok.lexeme[0] = '\0';
         }
     }
+    if (!tok.lexeme) tok.kind = TOK_ERROR;
     return tok;
 }
 

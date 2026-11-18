@@ -1,4 +1,5 @@
 #include "parser_expr.h"
+#include "expr_limites.h"
 #include <stdio.h>
 
 static void error(ParserExpr *p, const char *esperado) {
@@ -6,7 +7,7 @@ static void error(ParserExpr *p, const char *esperado) {
     if (p->la.kind == TOK_ERROR) {
         snprintf(p->error_msg, sizeof(p->error_msg),
                  "Línea %d, columna %d: error léxico: %s",
-                 p->la.line, p->la.col, p->la.lexeme ? p->la.lexeme : "");
+                 p->la.line, p->la.col, p->la.lexeme ? p->la.lexeme : "memoria insuficiente");
     } else {
         const char *encontrado = p->la.lexeme && p->la.lexeme[0]
                                      ? p->la.lexeme : token_kind_to_str(p->la.kind);
@@ -85,11 +86,20 @@ static ASTExpr *potencia(ParserExpr *p) {
 
 /* <Unario> */
 static ASTExpr *unario(ParserExpr *p) {
+    if (++p->profundidad > EXPR_PROFUNDIDAD_MAX) {
+        p->has_error = 1;
+        snprintf(p->error_msg, sizeof(p->error_msg), "Línea %d, columna %d: profundidad sintáctica máxima (%d) excedida", p->la.line, p->la.col, EXPR_PROFUNDIDAD_MAX);
+        longjmp(p->jmp_env, 1);
+    }
+    ASTExpr *resultado;
     if (p->la.kind == TOK_MINUS) {
         comer(p, TOK_MINUS);
-        return ast_expr_unary(&p->arena, EXPR_UNARY_MINUS, unario(p));
+        resultado = ast_expr_unary(&p->arena, EXPR_UNARY_MINUS, unario(p));
+    } else {
+        resultado = potencia(p);
     }
-    return potencia(p);
+    p->profundidad--;
+    return resultado;
 }
 
 /* <Termino> y <Expr> acumulan los operadores por la izquierda. */
@@ -123,15 +133,25 @@ void parser_expr_init(ParserExpr *p, const char *texto) {
     p->la.line = 1;
     p->la.col = 1;
     p->has_error = 0;
+    p->profundidad = 0;
     p->error_msg[0] = '\0';
 }
 
 /* <Inicio>: además de <Expr>, exige que no quede entrada sin consumir. */
 ASTExpr *parser_expr_parse(ParserExpr *p) {
-    if (setjmp(p->jmp_env) != 0) return NULL;
+    if (setjmp(p->jmp_env) != 0) {
+        arena_set_error_destino(&p->arena, NULL);
+        if (p->arena.sin_memoria) {
+            p->has_error = 1;
+            snprintf(p->error_msg, sizeof(p->error_msg), "memoria insuficiente");
+        }
+        return NULL;
+    }
+    arena_set_error_destino(&p->arena, &p->jmp_env);
     p->la = lexer_siguiente(&p->lexer);
     ASTExpr *resultado = expr(p);
     if (p->la.kind != TOK_EOF) error(p, "fin de entrada");
+    arena_set_error_destino(&p->arena, NULL);
     return resultado;
 }
 

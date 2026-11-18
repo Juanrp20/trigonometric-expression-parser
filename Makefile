@@ -31,6 +31,7 @@ EVAL_SRC = $(EXPR_SRC) src/evaluador_expr.c
 TEST_EVAL_SRC = tests/test_evaluador_expr.c
 CONSOLE_SRC = $(EVAL_SRC) src/consola_expr.c
 TEST_CONSOLE_SRC = tests/test_consola_expr.c
+HEADERS = $(wildcard include/*.h)
 LDLIBS = -lm
 
 TARGET = toy_c$(EXE)
@@ -49,13 +50,13 @@ toy_c: $(TARGET)
 toy_ll1: $(TARGET_LL1)
 endif
 
-$(TARGET): $(SRC) $(MAIN_SRC)
+$(TARGET): $(SRC) $(MAIN_SRC) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $(SRC) $(MAIN_SRC)
 
-$(TARGET_LL1): $(LL1_SRC) $(MAIN_LL1_SRC)
+$(TARGET_LL1): $(LL1_SRC) $(MAIN_LL1_SRC) $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $(LL1_SRC) $(MAIN_LL1_SRC)
 
-$(TARGET_EXPR): $(CONSOLE_SRC) src/main_expr.c
+$(TARGET_EXPR): $(CONSOLE_SRC) src/main_expr.c $(HEADERS)
 	$(CC) $(CFLAGS) -o $@ $(CONSOLE_SRC) src/main_expr.c $(LDLIBS)
 
 debug: $(SRC) $(LL1_SRC) $(MAIN_SRC) $(MAIN_LL1_SRC) $(CONSOLE_SRC) src/main_expr.c
@@ -63,16 +64,16 @@ debug: $(SRC) $(LL1_SRC) $(MAIN_SRC) $(MAIN_LL1_SRC) $(CONSOLE_SRC) src/main_exp
 	$(CC) $(DEBUG_FLAGS) -o $(TARGET_LL1) $(LL1_SRC) $(MAIN_LL1_SRC)
 	$(CC) $(DEBUG_FLAGS) -o $(TARGET_EXPR) $(CONSOLE_SRC) src/main_expr.c $(LDLIBS)
 
-$(TEST_BIN): $(SRC) $(LL1_SRC) $(TEST_SRC)
+$(TEST_BIN): $(SRC) $(LL1_SRC) $(TEST_SRC) $(HEADERS)
 	$(CC) $(DEBUG_FLAGS) -o $@ $(SRC) $(LL1_SRC) $(TEST_SRC)
 
-$(TEST_EXPR_BIN): $(EXPR_SRC) $(TEST_EXPR_SRC)
+$(TEST_EXPR_BIN): $(EXPR_SRC) $(TEST_EXPR_SRC) $(HEADERS)
 	$(CC) $(DEBUG_FLAGS) -o $@ $(EXPR_SRC) $(TEST_EXPR_SRC)
 
-$(TEST_EVAL_BIN): $(EVAL_SRC) $(TEST_EVAL_SRC)
+$(TEST_EVAL_BIN): $(EVAL_SRC) $(TEST_EVAL_SRC) $(HEADERS)
 	$(CC) $(DEBUG_FLAGS) -o $@ $(EVAL_SRC) $(TEST_EVAL_SRC) $(LDLIBS)
 
-$(TEST_CONSOLE_BIN): $(CONSOLE_SRC) $(TEST_CONSOLE_SRC)
+$(TEST_CONSOLE_BIN): $(CONSOLE_SRC) $(TEST_CONSOLE_SRC) $(HEADERS)
 	$(CC) $(DEBUG_FLAGS) -o $@ $(CONSOLE_SRC) $(TEST_CONSOLE_SRC) $(LDLIBS)
 
 test: $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN)

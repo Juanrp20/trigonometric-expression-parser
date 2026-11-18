@@ -8,7 +8,7 @@ static void parser_error(Parser *p, const char *esperado) {
     if (p->la.kind == TOK_ERROR) {
         snprintf(p->error_msg, sizeof(p->error_msg),
                  "Línea %d, columna %d: %s",
-                 p->la.line, p->la.col, p->la.lexeme ? p->la.lexeme : "");
+                 p->la.line, p->la.col, p->la.lexeme ? p->la.lexeme : "memoria insuficiente");
     } else {
         const char *encontrado = (p->la.lexeme && p->la.lexeme[0] != '\0')
                                  ? p->la.lexeme
@@ -25,7 +25,7 @@ static Token parser_comer(Parser *p, TokenKind kind) {
         p->has_error = 1;
         snprintf(p->error_msg, sizeof(p->error_msg),
                  "Línea %d, columna %d: %s",
-                 p->la.line, p->la.col, p->la.lexeme ? p->la.lexeme : "");
+                 p->la.line, p->la.col, p->la.lexeme ? p->la.lexeme : "memoria insuficiente");
         longjmp(p->jmp_env, 1);
     }
     if (kind != (TokenKind)-1 && p->la.kind != kind) {
@@ -42,9 +42,9 @@ static void parser_eat(Parser *p, TokenKind kind) {
 }
 
 static char *parser_eat_id(Parser *p) {
-    Token tok = parser_comer(p, TOK_ID);
-    char *id = arena_strdup(&p->arena, tok.lexeme);
-    token_free(&tok);
+    if (p->la.kind != TOK_ID) parser_error(p, "TOK-ID");
+    char *id = arena_strdup(&p->arena, p->la.lexeme);
+    parser_eat(p, TOK_ID);
     return id;
 }
 
@@ -105,8 +105,14 @@ void parser_destroy(Parser *p) {
 
 ASTProgram *parser_parse(Parser *p) {
     if (setjmp(p->jmp_env) != 0) {
+        arena_set_error_destino(&p->arena, NULL);
+        if (p->arena.sin_memoria) {
+            p->has_error = 1;
+            snprintf(p->error_msg, sizeof(p->error_msg), "memoria insuficiente");
+        }
         return NULL;
     }
+    arena_set_error_destino(&p->arena, &p->jmp_env);
     p->la = lexer_siguiente(p->lexer);
     if (p->la.kind == TOK_ERROR) {
         parser_error(p, "");
@@ -115,6 +121,7 @@ ASTProgram *parser_parse(Parser *p) {
     if (p->la.kind != TOK_EOF) {
         parser_error(p, "TOK-EOF");
     }
+    arena_set_error_destino(&p->arena, NULL);
     return ast;
 }
 
@@ -432,15 +439,13 @@ static ASTExpr *parse_exp_expr(Parser *p) {
 static ASTExpr *parse_primary(Parser *p) {
     TokenKind k = p->la.kind;
     if (k == TOK_NUMBER) {
-        Token t = parser_comer(p, TOK_NUMBER);
-        ASTExpr *e = ast_expr_number(&p->arena, t.lexeme);
-        token_free(&t);
+        ASTExpr *e = ast_expr_number(&p->arena, p->la.lexeme);
+        parser_eat(p, TOK_NUMBER);
         return e;
     }
     if (k == TOK_STRING) {
-        Token t = parser_comer(p, TOK_STRING);
-        ASTExpr *e = ast_expr_string(&p->arena, t.lexeme);
-        token_free(&t);
+        ASTExpr *e = ast_expr_string(&p->arena, p->la.lexeme);
+        parser_eat(p, TOK_STRING);
         return e;
     }
     if (k == TOK_TRUE) {

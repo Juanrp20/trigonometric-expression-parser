@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 static char *read_entire_file(const char *path) {
     FILE *f = fopen(path, "rb");
@@ -9,16 +10,17 @@ static char *read_entire_file(const char *path) {
         perror("Error al abrir archivo");
         return NULL;
     }
-    fseek(f, 0, SEEK_END);
+    if (fseek(f, 0, SEEK_END) != 0) { fclose(f); return NULL; }
     long size = ftell(f);
-    fseek(f, 0, SEEK_SET);
+    if (size < 0 || (uintmax_t)size >= SIZE_MAX || fseek(f, 0, SEEK_SET) != 0) { fclose(f); return NULL; }
 
-    char *buf = (char *)malloc(size + 1);
+    char *buf = (char *)malloc((size_t)size + 1);
     if (!buf) {
         fclose(f);
         return NULL;
     }
     size_t read_bytes = fread(buf, 1, size, f);
+    if (ferror(f)) { free(buf); fclose(f); return NULL; }
     buf[read_bytes] = '\0';
     fclose(f);
     return buf;
@@ -67,7 +69,12 @@ int main(int argc, char **argv) {
     }
 
     LL1Grammar g;
-    ll1_grammar_parse(&g, text);
+    if (!ll1_grammar_parse(&g, text)) {
+        fprintf(stderr, "Error: gramática vacía o mal formada\n");
+        ll1_grammar_free(&g);
+        free(text);
+        return 2;
+    }
     ll1_grammar_calculate(&g);
 
     LL1ConflictList confs;
@@ -114,8 +121,9 @@ int main(int argc, char **argv) {
         free(sorted_nt);
     }
 
+    int estado = confs.count ? 1 : 0;
     ll1_conflicts_free(&confs);
     ll1_grammar_free(&g);
     free(text);
-    return 0;
+    return estado;
 }

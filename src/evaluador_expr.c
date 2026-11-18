@@ -1,4 +1,5 @@
 #include "evaluador_expr.h"
+#include "expr_limites.h"
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -17,8 +18,9 @@ static int fallo(Evaluador *e, const char *mensaje, const char *detalle) {
     return 0;
 }
 
-static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor) {
+static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor, size_t profundidad) {
     double izquierda, derecha, resultado;
+    if (profundidad > EXPR_PROFUNDIDAD_MAX) return fallo(e, "Profundidad máxima del AST excedida", NULL);
     if (!expr) return fallo(e, "Nodo de expresión ausente", NULL);
 
     switch (expr->kind) {
@@ -42,9 +44,9 @@ static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor) {
             *valor = resultado;
             return 1;
         case EXPR_PAREN:
-            return evaluar(e, expr->as.unary_arg, valor);
+            return evaluar(e, expr->as.unary_arg, valor, profundidad + 1);
         case EXPR_UNARY_MINUS:
-            if (!evaluar(e, expr->as.unary_arg, &resultado)) return 0;
+            if (!evaluar(e, expr->as.unary_arg, &resultado, profundidad + 1)) return 0;
             *valor = -resultado;
             return 1;
         case EXPR_BINARY: {
@@ -56,8 +58,8 @@ static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor) {
                 strcmp(op, token_kind_to_str(TOK_DIV)) != 0 &&
                 strcmp(op, token_kind_to_str(TOK_EXP)) != 0)
                 return fallo(e, "Operador no admitido", op);
-            if (!evaluar(e, expr->as.binary.left, &izquierda) ||
-                !evaluar(e, expr->as.binary.right, &derecha)) return 0;
+            if (!evaluar(e, expr->as.binary.left, &izquierda, profundidad + 1) ||
+                !evaluar(e, expr->as.binary.right, &derecha, profundidad + 1)) return 0;
             if (strcmp(op, token_kind_to_str(TOK_PLUS)) == 0) resultado = izquierda + derecha;
             else if (strcmp(op, token_kind_to_str(TOK_MINUS)) == 0) resultado = izquierda - derecha;
             else if (strcmp(op, token_kind_to_str(TOK_MUL)) == 0) resultado = izquierda * derecha;
@@ -84,7 +86,7 @@ static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor) {
                 return fallo(e, "Función no admitida", nombre);
             if (expr->as.call.args.count != 1 || !expr->as.call.args.items)
                 return fallo(e, "La función requiere un argumento", nombre);
-            if (!evaluar(e, expr->as.call.args.items[0], &izquierda)) return 0;
+            if (!evaluar(e, expr->as.call.args.items[0], &izquierda, profundidad + 1)) return 0;
             errno = 0;
             if (strcmp(nombre, "sin") == 0 || strcmp(nombre, "sen") == 0) resultado = sin(izquierda);
             else if (strcmp(nombre, "cos") == 0) resultado = cos(izquierda);
@@ -103,7 +105,7 @@ ExprResultado evaluador_expr(const ASTExpr *expr, ExprResolverVariable resolver,
     Evaluador e = {resolver, contexto, ""};
     ExprResultado r = {0, 0.0, ""};
     double valor;
-    if (evaluar(&e, expr, &valor)) {
+    if (evaluar(&e, expr, &valor, 1)) {
         r.exito = 1;
         r.valor = valor;
     } else {

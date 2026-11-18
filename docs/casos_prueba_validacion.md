@@ -42,3 +42,12 @@ La identidad `cos(x)^2+sin(x)^2 ≈ 1` se ejecutó con x = −7, −1, 0, 0.5, 3
 | M04 | `10^1000` | error matemático | código 4, fuera de rango | desbordamiento | Pasa |
 
 La suite C además prueba `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos y diferencias entre mayúsculas y minúsculas. La compilación limpia y todas las pruebas con AddressSanitizer y UBSan pasaron con `ASAN_OPTIONS=detect_leaks=0`. LeakSanitizer falló bajo `ptrace`; no se comprobó ausencia de fugas. No se midió cobertura.
+
+Las pruebas adicionales verifican el rechazo de gramáticas vacías, mal formadas y con no terminales indefinidos, el límite de 128 niveles para negaciones, paréntesis y potencias, árboles asociativos demasiado profundos y un fallo de reserva por tamaño no representable. `tests/test_ll1_cli.py` prueba los códigos de salida. `tests/test_memoria_fallos.c` inyecta fallos de `malloc` y `realloc` en lexer y arena de ambos parsers usando `--wrap` de GNU ld; se ejecutó en Linux con ASan y UBSan y `detect_leaks=0`. No se han inyectado fallos de reserva en el verificador LL(1).
+
+Para repetir la inyección en Linux con GCC y GNU ld:
+
+```sh
+gcc -Wall -Wextra -Werror -std=c99 -pedantic -Iinclude -g -fsanitize=address,undefined -Wl,--wrap=malloc -Wl,--wrap=realloc -o /tmp/tarea3_fallos_memoria src/token.c src/lexer.c src/arena.c src/ast.c src/parser_expr.c src/parser.c tests/test_memoria_fallos.c
+ASAN_OPTIONS=detect_leaks=0 /tmp/tarea3_fallos_memoria
+```

@@ -1,6 +1,7 @@
 #include "set.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 void set_init(StringSet *s) {
     s->items = NULL;
@@ -23,21 +24,24 @@ int set_add(StringSet *s, const char *str) {
         return 0;
     }
     if (s->count >= s->capacity) {
+        if (s->capacity > SIZE_MAX / 2 / sizeof(char *)) return 0;
         size_t new_cap = s->capacity == 0 ? 8 : s->capacity * 2;
         char **new_items = (char **)realloc(s->items, new_cap * sizeof(char *));
         if (!new_items) return 0;
         s->items = new_items;
         s->capacity = new_cap;
     }
+    size_t len = strlen(str);
+    char *copia = (char *)malloc(len + 1);
+    if (!copia) return 0;
+    memcpy(copia, str, len + 1);
     /* Inserción ordenada */
     size_t pos = s->count;
     while (pos > 0 && strcmp(s->items[pos - 1], str) > 0) {
         s->items[pos] = s->items[pos - 1];
         pos--;
     }
-    size_t len = strlen(str);
-    s->items[pos] = (char *)malloc(len + 1);
-    memcpy(s->items[pos], str, len + 1);
+    s->items[pos] = copia;
     s->count++;
     return 1;
 }

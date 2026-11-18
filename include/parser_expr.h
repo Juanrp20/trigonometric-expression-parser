@@ -13,6 +13,7 @@ typedef struct {
     jmp_buf jmp_env;
     int has_error;
     char error_msg[512];
+    size_t profundidad;
 } ParserExpr;
 
 /* El texto debe permanecer válido hasta llamar a parser_expr_destroy. */

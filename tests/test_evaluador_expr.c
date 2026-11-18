@@ -1,5 +1,6 @@
 #include "evaluador_expr.h"
 #include "parser_expr.h"
+#include "expr_limites.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -137,9 +138,23 @@ static void probar_errores(void) {
     puts("OK errores matemáticos y nodos no admitidos");
 }
 
+static void probar_arbol_profundo(void) {
+    char expresion[EXPR_PROFUNDIDAD_MAX * 2 + 4];
+    for (int i = 0; i < EXPR_PROFUNDIDAD_MAX; i++) {
+        expresion[2*i] = '1'; expresion[2*i+1] = '+';
+    }
+    expresion[2*EXPR_PROFUNDIDAD_MAX] = '1';
+    expresion[2*EXPR_PROFUNDIDAD_MAX+1] = '\0';
+    error_esperado(expresion, NULL, "Profundidad máxima del AST");
+    expresion[2*(EXPR_PROFUNDIDAD_MAX-1)-1] = '\0';
+    cercano(expresion, NULL, EXPR_PROFUNDIDAD_MAX - 1);
+    puts("OK evaluador: límite de profundidad del AST");
+}
+
 int main(void) {
     probar_aritmetica_y_trigonometria();
     probar_variables();
     probar_errores();
+    probar_arbol_profundo();
     return 0;
 }

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <stdint.h>
 
 static void test_lexer_basicos(void) {
     {
@@ -351,6 +352,12 @@ static void test_precedencia(void) {
 }
 
 static void test_ll1(void) {
+    const char *malas[] = {"", "  -- comentario\n", "<S> -> [ ID", "<S> -> ID |", "<S> ID", "<S> -> \"sin cerrar", "<S> -> <NO_DEFINIDO>", "<S> -> @"};
+    for (size_t i = 0; i < sizeof(malas)/sizeof(malas[0]); i++) {
+        LL1Grammar g;
+        assert(!ll1_grammar_parse(&g, malas[i]));
+        ll1_grammar_free(&g);
+    }
     char *matematica = read_file_text("gramatica/expresiones_matematicas.txt");
     assert(matematica != NULL);
     LL1Grammar g_mat;
@@ -451,6 +458,17 @@ static void test_ll1(void) {
     }
 
     printf("OK test_ll1\n");
+}
+
+static void test_arena_memoria(void) {
+    Arena a;
+    arena_init(&a);
+    void *p = arena_alloc(&a, 16);
+    assert(p && a.count == 1);
+    assert(!arena_alloc(&a, SIZE_MAX));
+    assert(a.sin_memoria && a.count == 1 && a.ptrs[0] == p);
+    arena_free(&a);
+    puts("OK test_arena_memoria");
 }
 
 static void test_readme_ejemplo(void) {
@@ -634,6 +652,7 @@ int main(void) {
     test_parser_invalidos();
     test_precedencia();
     test_ll1();
+    test_arena_memoria();
     test_readme_ejemplo();
     test_apendice_gramatica_original();
     test_afd_especificacion();

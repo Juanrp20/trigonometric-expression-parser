@@ -61,6 +61,8 @@ La precedencia aumenta desde suma y resta, multiplicación y división, negació
 \section{Verificación LL(1)}
 El verificador heredado expande opciones y repeticiones a producciones auxiliares, calcula anulabilidad, PRIMERO y SIGUIENTE por punto fijo y compara los conjuntos de selección de las alternativas. La orden \verb|./toy_ll1 gramatica/expresiones_matematicas.txt --sets| produjo \texttt{ninguno}, es decir, cero conflictos detectados. Se presupone la clasificación léxica disjunta de las funciones e \texttt{ID}.
 
+El programa devuelve 0 sin conflictos, 1 ante conflictos o errores de lectura y 2 para una gramática vacía o mal formada. La gramática original de Toy sigue presentando dos conflictos y ahora devuelve código 1.
+
 Los conjuntos principales obtenidos son los siguientes. Se escribe \texttt{\$} para fin de entrada y F para \{sin, sen, cos, tan\}.
 \begin{center}
 \begin{tabular}{lll}\toprule
@@ -85,6 +87,8 @@ Se reutiliza \texttt{ASTExpr} de Toy: número e identificador guardan su texto; 
 El evaluador recorre el AST sin modificarlo: convierte números con \texttt{strtod}, consulta variables mediante un callback, evalúa hijos recursivamente y aplica el operador o función correspondiente. Usa \texttt{double}, \texttt{pow}, \texttt{sin}, \texttt{cos} y \texttt{tan}; verifica conversión, rango, dominio, división por cero y valores no finitos. El resultado distingue explícitamente éxito y error.
 
 El enunciado propone calcular durante el descenso sintáctico. El diseño acordado realiza la evaluación semántica \emph{después} de validar toda la expresión y construir el AST. Esta adaptación permite solicitar variables únicamente tras confirmar la sintaxis y reutilizar el árbol sin duplicar el parser. La evaluación sigue la estructura construida por el descenso recursivo.
+
+El descenso sintáctico tiene un límite de 128 niveles de \texttt{<Unario>}; la recolección de variables y la evaluación tienen un límite independiente de 128 nodos de profundidad en el AST. Al superar cualquiera se informa un error controlado.
 \section{Interfaz de consola}
 \texttt{calculadora\_expr} fija \texttt{LC\_NUMERIC} en \texttt{C}, lee una expresión por línea y la analiza. Si es válida, recorre el AST de izquierda a derecha, registra cada variable distinta y solicita su valor una sola vez. Los valores inválidos permiten reintento; EOF termina la ejecución. Después evalúa y muestra el resultado. Se liberan la lista de variables, la arena del parser y la línea. Los valores de variables se convierten con \texttt{strtod} y admiten signo y notación científica, a diferencia de los literales de la gramática.
 \section{Casos de prueba y resultados}
@@ -116,7 +120,7 @@ Se ejecutaron \texttt{make clean}, \texttt{make all} y \texttt{ASAN\_OPTIONS=det
 \section{Conclusiones}
 Se obtuvo un reconocedor LL(1), un AST y un evaluador numérico integrados en una consola. La separación de fases permitió reutilizar componentes de Toy, identificar errores y verificar la precedencia mediante la estructura del árbol. Se conservaron las regresiones existentes.
 
-Las limitaciones incluyen una expresión por ejecución, multiplicación explícita, literales de expresión sin notación científica y profundidad de anidamiento limitada por la pila. Algunas reservas de memoria heredadas no manejan de forma controlada su agotamiento. Los errores \texttt{ERANGE} se rechazan también en subdesbordamiento; no se aplican tolerancias arbitrarias a singularidades de la tangente.
+Las limitaciones incluyen una expresión por ejecución, multiplicación explícita, literales de expresión sin notación científica y los límites explícitos de profundidad. El lexer y la arena controlan fallos de reserva en sus rutas principales, pero el verificador LL(1) heredado aún no maneja de forma completa el agotamiento de memoria. Los errores \texttt{ERANGE} se rechazan también en subdesbordamiento; no se aplican tolerancias arbitrarias a singularidades de la tangente.
 \section{Referencias}
 \begin{enumerate}
 \item Enunciado suministrado: \texttt{docs/compiladores\_trabajo\_pr\_ctico\_3.md}.

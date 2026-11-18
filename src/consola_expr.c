@@ -1,5 +1,6 @@
 #include "consola_expr.h"
 #include "evaluador_expr.h"
+#include "expr_limites.h"
 #include "parser_expr.h"
 #include <ctype.h>
 #include <errno.h>
@@ -59,18 +60,21 @@ static int agregar_variable(Variables *vars, const char *nombre) {
     return 1;
 }
 
-static int recoger_variables(Variables *vars, const ASTExpr *expr) {
+static int recoger_variables(Variables *vars, const ASTExpr *expr, size_t profundidad) {
+    if (profundidad > EXPR_PROFUNDIDAD_MAX) return -1;
     switch (expr->kind) {
         case EXPR_NUMBER: return 1;
         case EXPR_ID: return agregar_variable(vars, expr->as.str_val);
         case EXPR_PAREN:
-        case EXPR_UNARY_MINUS: return recoger_variables(vars, expr->as.unary_arg);
-        case EXPR_BINARY:
-            return recoger_variables(vars, expr->as.binary.left) &&
-                   recoger_variables(vars, expr->as.binary.right);
+        case EXPR_UNARY_MINUS: return recoger_variables(vars, expr->as.unary_arg, profundidad + 1);
+        case EXPR_BINARY: {
+            int izq = recoger_variables(vars, expr->as.binary.left, profundidad + 1);
+            if (izq != 1) return izq;
+            return recoger_variables(vars, expr->as.binary.right, profundidad + 1);
+        }
         case EXPR_CALL:
             for (size_t i = 0; i < expr->as.call.args.count; i++)
-                if (!recoger_variables(vars, expr->as.call.args.items[i])) return 0;
+                { int r = recoger_variables(vars, expr->as.call.args.items[i], profundidad + 1); if (r != 1) return r; }
             return 1;
         default: return 0;
     }
@@ -119,8 +123,9 @@ int consola_expr_ejecutar(FILE *entrada, FILE *salida, FILE *errores) {
         estado = 2;
         goto fin;
     }
-    if (!recoger_variables(&vars, ast)) {
-        fputs("Error al recopilar variables.\n", errores);
+    int recogida = recoger_variables(&vars, ast, 1);
+    if (recogida != 1) {
+        fputs(recogida < 0 ? "Error: profundidad máxima del AST excedida.\n" : "Error al recopilar variables.\n", errores);
         goto fin;
     }
     for (size_t i = 0; i < vars.count; i++) {

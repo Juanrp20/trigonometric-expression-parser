@@ -193,7 +193,7 @@ static void aux_map_free(AuxMap *map) {
     map->capacity = 0;
 }
 
-static void tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
+static int tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
     tok_list_init(tokens);
     const char *p = text;
 
@@ -205,7 +205,7 @@ static void tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
         if (*p == '\n') p++;
 
         char line[2048];
-        if (line_len >= sizeof(line)) line_len = sizeof(line) - 1;
+        if (line_len >= sizeof(line)) return 0;
         memcpy(line, line_start, line_len);
         line[line_len] = '\0';
 
@@ -238,6 +238,7 @@ static void tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
             if (c == '<') {
                 size_t j = i + 1;
                 while (j < line_len && line[j] != '>') j++;
+                if (j == line_len || j == i + 1 || j - i >= 255) return 0;
                 size_t end_j = (j < line_len) ? j + 1 : line_len;
                 char buf[256];
                 size_t tok_l = end_j - i;
@@ -251,6 +252,7 @@ static void tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
             if (c == '"') {
                 size_t j = i + 1;
                 while (j < line_len && line[j] != '"') j++;
+                if (j == line_len || j - i >= 255) return 0;
                 size_t end_j = (j < line_len) ? j + 1 : line_len;
                 char buf[256];
                 size_t tok_l = end_j - i;
@@ -264,6 +266,7 @@ static void tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
             if (c == '\'') {
                 size_t j = i + 1;
                 while (j < line_len && line[j] != '\'') j++;
+                if (j == line_len || j - i >= 254) return 0;
                 size_t end_j = (j < line_len) ? j + 1 : line_len;
                 char buf[256];
                 buf[0] = '"';
@@ -289,11 +292,58 @@ static void tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
                 continue;
             }
 
-            char single[2] = {c, '\0'};
-            tok_list_push(tokens, TOK_EBNF_T, single);
-            i++;
+            return 0; /* Los terminales de puntuación deben ir entre comillas. */
         }
     }
+    return 1;
+}
+
+/* Comprueba la estructura antes de expandir EBNF a reglas auxiliares. */
+static int validar_rhs(const EbnfTokenList *t, size_t *i, EbnfTokKind cierre, int depth) {
+    int elementos = 0;
+    if (depth > 128) return 0;
+    while (*i < t->count) {
+        EbnfTokKind k = t->items[*i].kind;
+        if (k == cierre || (cierre == TOK_EBNF_EOF && k == TOK_EBNF_NT &&
+            *i + 1 < t->count && t->items[*i + 1].kind == TOK_EBNF_ARROW)) break;
+        if (k == TOK_EBNF_PIPE) {
+            if (!elementos) return 0;
+            elementos = 0; (*i)++; continue;
+        }
+        if (k == TOK_EBNF_LPAR || k == TOK_EBNF_LBRACKET || k == TOK_EBNF_LBRACE) {
+            EbnfTokKind fin = k == TOK_EBNF_LPAR ? TOK_EBNF_RPAR :
+                              k == TOK_EBNF_LBRACKET ? TOK_EBNF_RBRACKET : TOK_EBNF_RBRACE;
+            (*i)++;
+            if (!validar_rhs(t, i, fin, depth + 1) || *i >= t->count || t->items[*i].kind != fin) return 0;
+            (*i)++;
+        } else if (k == TOK_EBNF_NT || k == TOK_EBNF_T || k == TOK_EBNF_ID) {
+            (*i)++;
+        } else return 0;
+        elementos = 1;
+    }
+    return elementos;
+}
+
+static int validar_tokens(const EbnfTokenList *t) {
+    size_t i = 0;
+    if (!t->count) return 0;
+    while (i < t->count) {
+        if (t->items[i].kind != TOK_EBNF_NT || i + 1 >= t->count ||
+            t->items[i + 1].kind != TOK_EBNF_ARROW) return 0;
+        i += 2;
+        if (!validar_rhs(t, &i, TOK_EBNF_EOF, 0)) return 0;
+    }
+    for (size_t j = 0; j < t->count; j++) {
+        if (t->items[j].kind == TOK_EBNF_NT &&
+            !(j + 1 < t->count && t->items[j + 1].kind == TOK_EBNF_ARROW)) {
+            int definido = 0;
+            for (size_t k = 0; k + 1 < t->count; k++)
+                if (t->items[k].kind == TOK_EBNF_NT && t->items[k + 1].kind == TOK_EBNF_ARROW &&
+                    strcmp(t->items[j].val, t->items[k].val) == 0) { definido = 1; break; }
+            if (!definido) return 0;
+        }
+    }
+    return 1;
 }
 
 /* Parser recursivo de RHS */
@@ -434,7 +484,11 @@ void ll1_grammar_init(LL1Grammar *g) {
 int ll1_grammar_parse(LL1Grammar *g, const char *ebnf_text) {
     ll1_grammar_init(g);
     EbnfTokenList tokens;
-    tokenize_ebnf(ebnf_text, &tokens);
+    if (!ebnf_text) return 0;
+    if (!tokenize_ebnf(ebnf_text, &tokens) || !validar_tokens(&tokens)) {
+        tok_list_free(&tokens);
+        return 0;
+    }
 
     /* Encontrar inicios de regla */
     size_t *rule_starts = NULL;

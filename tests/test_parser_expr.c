@@ -1,4 +1,5 @@
 #include "parser_expr.h"
+#include "expr_limites.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -115,10 +116,41 @@ static void probar_errores(void) {
     puts("OK parser matemático: diagnósticos");
 }
 
+static void probar_profundidad(void) {
+    char s[EXPR_PROFUNDIDAD_MAX * 3 + 16];
+    ParserExpr p;
+    for (int n = EXPR_PROFUNDIDAD_MAX - 2; n <= EXPR_PROFUNDIDAD_MAX; n += 2) {
+        memset(s, '-', (size_t)n); s[n] = '1'; s[n + 1] = '\0';
+        parser_expr_init(&p, s);
+        ASTExpr *e = parser_expr_parse(&p);
+        if (n < EXPR_PROFUNDIDAD_MAX) assert(e);
+        else assert(!e && strstr(p.error_msg, "profundidad"));
+        parser_expr_destroy(&p);
+        for (int i = 0; i < n; i++) s[i] = '(';
+        s[n] = '1';
+        for (int i = 0; i < n; i++) s[n + 1 + i] = ')';
+        s[2 * n + 1] = '\0';
+        parser_expr_init(&p, s);
+        e = parser_expr_parse(&p);
+        if (n < EXPR_PROFUNDIDAD_MAX) assert(e);
+        else assert(!e && strstr(p.error_msg, "profundidad"));
+        parser_expr_destroy(&p);
+        for (int i = 0; i < n; i++) { s[2*i] = '1'; s[2*i+1] = '^'; }
+        s[2*n] = '1'; s[2*n+1] = '\0';
+        parser_expr_init(&p, s);
+        e = parser_expr_parse(&p);
+        if (n < EXPR_PROFUNDIDAD_MAX) assert(e);
+        else assert(!e && strstr(p.error_msg, "profundidad"));
+        parser_expr_destroy(&p);
+    }
+    puts("OK parser matemático: límite de profundidad");
+}
+
 int main(void) {
     probar_validas();
     probar_invalidas();
     probar_estructura();
     probar_errores();
+    probar_profundidad();
     return 0;
 }

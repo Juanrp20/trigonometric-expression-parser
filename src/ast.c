@@ -1,6 +1,7 @@
 #include "ast.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 void ast_expr_list_init(Arena *arena, ASTExprList *list) {
     (void)arena;
@@ -11,8 +12,10 @@ void ast_expr_list_init(Arena *arena, ASTExprList *list) {
 
 void ast_expr_list_push(Arena *arena, ASTExprList *list, ASTExpr *item) {
     if (list->count >= list->capacity) {
+        if (list->capacity > (size_t)PTRDIFF_MAX / 2 / sizeof(ASTExpr *)) { (void)arena_alloc(arena, SIZE_MAX); return; }
         size_t new_cap = list->capacity == 0 ? 4 : list->capacity * 2;
         ASTExpr **new_items = (ASTExpr **)arena_alloc(arena, new_cap * sizeof(ASTExpr *));
+        if (!new_items) return;
         if (list->items && list->count > 0) {
             memcpy(new_items, list->items, list->count * sizeof(ASTExpr *));
         }
@@ -31,8 +34,10 @@ void ast_string_list_init(Arena *arena, ASTStringList *list) {
 
 void ast_string_list_push(Arena *arena, ASTStringList *list, const char *item) {
     if (list->count >= list->capacity) {
+        if (list->capacity > (size_t)PTRDIFF_MAX / 2 / sizeof(char *)) { (void)arena_alloc(arena, SIZE_MAX); return; }
         size_t new_cap = list->capacity == 0 ? 4 : list->capacity * 2;
         char **new_items = (char **)arena_alloc(arena, new_cap * sizeof(char *));
+        if (!new_items) return;
         if (list->items && list->count > 0) {
             memcpy(new_items, list->items, list->count * sizeof(char *));
         }
@@ -51,8 +56,10 @@ void ast_stmt_list_init(Arena *arena, ASTStmtList *list) {
 
 void ast_stmt_list_push(Arena *arena, ASTStmtList *list, ASTStmt *item) {
     if (list->count >= list->capacity) {
+        if (list->capacity > (size_t)PTRDIFF_MAX / 2 / sizeof(ASTStmt *)) { (void)arena_alloc(arena, SIZE_MAX); return; }
         size_t new_cap = list->capacity == 0 ? 4 : list->capacity * 2;
         ASTStmt **new_items = (ASTStmt **)arena_alloc(arena, new_cap * sizeof(ASTStmt *));
+        if (!new_items) return;
         if (list->items && list->count > 0) {
             memcpy(new_items, list->items, list->count * sizeof(ASTStmt *));
         }
@@ -71,8 +78,10 @@ void ast_func_list_init(Arena *arena, ASTFuncList *list) {
 
 void ast_func_list_push(Arena *arena, ASTFuncList *list, ASTFunc *item) {
     if (list->count >= list->capacity) {
+        if (list->capacity > (size_t)PTRDIFF_MAX / 2 / sizeof(ASTFunc *)) { (void)arena_alloc(arena, SIZE_MAX); return; }
         size_t new_cap = list->capacity == 0 ? 4 : list->capacity * 2;
         ASTFunc **new_items = (ASTFunc **)arena_alloc(arena, new_cap * sizeof(ASTFunc *));
+        if (!new_items) return;
         if (list->items && list->count > 0) {
             memcpy(new_items, list->items, list->count * sizeof(ASTFunc *));
         }
@@ -84,6 +93,7 @@ void ast_func_list_push(Arena *arena, ASTFuncList *list, ASTFunc *item) {
 
 ASTExpr *ast_expr_number(Arena *arena, const char *lex) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = EXPR_NUMBER;
     e->as.str_val = arena_strdup(arena, lex);
     return e;
@@ -91,6 +101,7 @@ ASTExpr *ast_expr_number(Arena *arena, const char *lex) {
 
 ASTExpr *ast_expr_string(Arena *arena, const char *lex) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = EXPR_STRING;
     e->as.str_val = arena_strdup(arena, lex);
     return e;
@@ -98,6 +109,7 @@ ASTExpr *ast_expr_string(Arena *arena, const char *lex) {
 
 ASTExpr *ast_expr_bool(Arena *arena, const char *val) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = EXPR_BOOL;
     e->as.bool_val = arena_strdup(arena, val);
     return e;
@@ -105,6 +117,7 @@ ASTExpr *ast_expr_bool(Arena *arena, const char *val) {
 
 ASTExpr *ast_expr_id(Arena *arena, const char *name) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = EXPR_ID;
     e->as.str_val = arena_strdup(arena, name);
     return e;
@@ -112,6 +125,7 @@ ASTExpr *ast_expr_id(Arena *arena, const char *name) {
 
 ASTExpr *ast_expr_paren(Arena *arena, ASTExpr *inner) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = EXPR_PAREN;
     e->as.unary_arg = inner;
     return e;
@@ -119,6 +133,7 @@ ASTExpr *ast_expr_paren(Arena *arena, ASTExpr *inner) {
 
 ASTExpr *ast_expr_call(Arena *arena, const char *name, ASTExprList args) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = EXPR_CALL;
     e->as.call.callee = arena_strdup(arena, name);
     e->as.call.args = args;
@@ -127,6 +142,7 @@ ASTExpr *ast_expr_call(Arena *arena, const char *name, ASTExprList args) {
 
 ASTExpr *ast_expr_unary(Arena *arena, ASTExprKind kind, ASTExpr *inner) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = kind;
     e->as.unary_arg = inner;
     return e;
@@ -134,6 +150,7 @@ ASTExpr *ast_expr_unary(Arena *arena, ASTExprKind kind, ASTExpr *inner) {
 
 ASTExpr *ast_expr_binary(Arena *arena, const char *op_str, ASTExpr *left, ASTExpr *right) {
     ASTExpr *e = (ASTExpr *)arena_alloc(arena, sizeof(ASTExpr));
+    if (!e) return NULL;
     e->kind = EXPR_BINARY;
     e->as.binary.op_str = arena_strdup(arena, op_str);
     e->as.binary.left = left;
@@ -143,6 +160,7 @@ ASTExpr *ast_expr_binary(Arena *arena, const char *op_str, ASTExpr *left, ASTExp
 
 ASTStmt *ast_stmt_if(Arena *arena, ASTExpr *cond, ASTBlock *tb, ASTBlock *eb) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = STMT_IF;
     s->as.if_stmt.cond = cond;
     s->as.if_stmt.then_block = tb;
@@ -152,6 +170,7 @@ ASTStmt *ast_stmt_if(Arena *arena, ASTExpr *cond, ASTBlock *tb, ASTBlock *eb) {
 
 ASTStmt *ast_stmt_while(Arena *arena, ASTExpr *cond, ASTBlock *body) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = STMT_WHILE;
     s->as.while_stmt.cond = cond;
     s->as.while_stmt.body = body;
@@ -160,6 +179,7 @@ ASTStmt *ast_stmt_while(Arena *arena, ASTExpr *cond, ASTBlock *body) {
 
 ASTStmt *ast_stmt_for(Arena *arena, const char *var, ASTExpr *start, ASTExpr *end, ASTExpr *step, ASTBlock *body) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = STMT_FOR;
     s->as.for_stmt.var = arena_strdup(arena, var);
     s->as.for_stmt.start = start;
@@ -171,6 +191,7 @@ ASTStmt *ast_stmt_for(Arena *arena, const char *var, ASTExpr *start, ASTExpr *en
 
 ASTStmt *ast_stmt_print(Arena *arena, int is_println, ASTExpr *expr) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = is_println ? STMT_PRINTLN : STMT_PRINT;
     s->as.print_expr = expr;
     return s;
@@ -178,6 +199,7 @@ ASTStmt *ast_stmt_print(Arena *arena, int is_println, ASTExpr *expr) {
 
 ASTStmt *ast_stmt_local(Arena *arena, const char *var, ASTExpr *expr) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = STMT_LOCAL;
     s->as.local_stmt.var = arena_strdup(arena, var);
     s->as.local_stmt.expr = expr;
@@ -186,6 +208,7 @@ ASTStmt *ast_stmt_local(Arena *arena, const char *var, ASTExpr *expr) {
 
 ASTStmt *ast_stmt_assign(Arena *arena, const char *var, ASTExpr *expr) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = STMT_ASSIGN;
     s->as.assign_stmt.var = arena_strdup(arena, var);
     s->as.assign_stmt.expr = expr;
@@ -194,6 +217,7 @@ ASTStmt *ast_stmt_assign(Arena *arena, const char *var, ASTExpr *expr) {
 
 ASTStmt *ast_stmt_call(Arena *arena, const char *name, ASTExprList args) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = STMT_CALL;
     s->as.call_stmt.name = arena_strdup(arena, name);
     s->as.call_stmt.args = args;
@@ -202,6 +226,7 @@ ASTStmt *ast_stmt_call(Arena *arena, const char *name, ASTExprList args) {
 
 ASTStmt *ast_stmt_ret(Arena *arena, ASTExpr *expr) {
     ASTStmt *s = (ASTStmt *)arena_alloc(arena, sizeof(ASTStmt));
+    if (!s) return NULL;
     s->kind = STMT_RET;
     s->as.ret_expr = expr;
     return s;
@@ -209,6 +234,7 @@ ASTStmt *ast_stmt_ret(Arena *arena, ASTExpr *expr) {
 
 ASTBlock *ast_block_create(Arena *arena, ASTStmtList stmts, ASTStmt *ret_stmt) {
     ASTBlock *b = (ASTBlock *)arena_alloc(arena, sizeof(ASTBlock));
+    if (!b) return NULL;
     b->stmts = stmts;
     b->ret_stmt = ret_stmt;
     return b;
@@ -216,6 +242,7 @@ ASTBlock *ast_block_create(Arena *arena, ASTStmtList stmts, ASTStmt *ret_stmt) {
 
 ASTFunc *ast_func_create(Arena *arena, const char *name, ASTStringList params, ASTBlock *body) {
     ASTFunc *f = (ASTFunc *)arena_alloc(arena, sizeof(ASTFunc));
+    if (!f) return NULL;
     f->is_main = 0;
     f->name = arena_strdup(arena, name);
     f->params = params;
@@ -225,6 +252,7 @@ ASTFunc *ast_func_create(Arena *arena, const char *name, ASTStringList params, A
 
 ASTFunc *ast_main_create(Arena *arena, ASTBlock *body) {
     ASTFunc *f = (ASTFunc *)arena_alloc(arena, sizeof(ASTFunc));
+    if (!f) return NULL;
     f->is_main = 1;
     f->name = NULL;
     f->params.items = NULL;
@@ -236,6 +264,7 @@ ASTFunc *ast_main_create(Arena *arena, ASTBlock *body) {
 
 ASTProgram *ast_program_create(Arena *arena, ASTFuncList funcs) {
     ASTProgram *p = (ASTProgram *)arena_alloc(arena, sizeof(ASTProgram));
+    if (!p) return NULL;
     p->funcs = funcs;
     return p;
 }

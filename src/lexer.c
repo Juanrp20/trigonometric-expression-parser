@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 typedef struct {
     char *data;
@@ -9,22 +10,28 @@ typedef struct {
     size_t cap;
 } StrBuf;
 
-static void buf_init(StrBuf *b) {
+static int buf_init(StrBuf *b) {
     b->cap = 32;
     b->len = 0;
     b->data = (char *)malloc(b->cap);
     if (b->data) {
         b->data[0] = '\0';
     }
+    return b->data != NULL;
 }
 
-static void buf_push(StrBuf *b, char c) {
+static int buf_push(StrBuf *b, char c) {
     if (b->len + 2 > b->cap) {
-        b->cap *= 2;
-        b->data = (char *)realloc(b->data, b->cap);
+        if (b->cap > SIZE_MAX / 2) return 0;
+        size_t nueva = b->cap * 2;
+        char *datos = (char *)realloc(b->data, nueva);
+        if (!datos) return 0;
+        b->data = datos;
+        b->cap = nueva;
     }
     b->data[b->len++] = c;
     b->data[b->len] = '\0';
+    return 1;
 }
 
 static void buf_free(StrBuf *b) {
@@ -110,12 +117,12 @@ static Token leer_identificador(Lexer *l) {
     int start_line = l->line;
     int start_col = l->col;
     StrBuf buf;
-    buf_init(&buf);
+    if (!buf_init(&buf)) return error_token(l, start_line, start_col, "memoria insuficiente");
 
     while (1) {
         int c = char_at(l);
         if (c != -1 && (es_letra(c) || es_digito(c))) {
-            buf_push(&buf, (char)c);
+            if (!buf_push(&buf, (char)c)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
             avanzar(l);
         } else {
             break;
@@ -141,12 +148,12 @@ static Token leer_numero(Lexer *l) {
     int start_line = l->line;
     int start_col = l->col;
     StrBuf buf;
-    buf_init(&buf);
+    if (!buf_init(&buf)) return error_token(l, start_line, start_col, "memoria insuficiente");
 
     while (1) {
         int c = char_at(l);
         if (c != -1 && es_digito(c)) {
-            buf_push(&buf, (char)c);
+            if (!buf_push(&buf, (char)c)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
             avanzar(l);
         } else {
             break;
@@ -158,11 +165,11 @@ static Token leer_numero(Lexer *l) {
         avanzar(l);
         int c2 = char_at(l);
         if (c2 != -1 && es_digito(c2)) {
-            buf_push(&buf, '.');
+            if (!buf_push(&buf, '.')) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
             while (1) {
                 int c3 = char_at(l);
                 if (c3 != -1 && es_digito(c3)) {
-                    buf_push(&buf, (char)c3);
+                    if (!buf_push(&buf, (char)c3)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
                     avanzar(l);
                 } else {
                     break;
@@ -188,7 +195,7 @@ static Token leer_cadena(Lexer *l, char comilla) {
     avanzar(l); /* consumir comilla inicial */
 
     StrBuf buf;
-    buf_init(&buf);
+    if (!buf_init(&buf)) return error_token(l, start_line, start_col, "memoria insuficiente");
 
     while (1) {
         int c = char_at(l);
@@ -200,7 +207,7 @@ static Token leer_cadena(Lexer *l, char comilla) {
             avanzar(l); /* consumir comilla final */
             break;
         }
-        buf_push(&buf, (char)c);
+        if (!buf_push(&buf, (char)c)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
         avanzar(l);
     }
 

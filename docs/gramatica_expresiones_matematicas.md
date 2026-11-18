@@ -61,6 +61,10 @@ con `lexer_init_matematico`; `lexer_init` conserva el comportamiento de Toy.
 Los nombres de función se emiten como `TOK_SIN`, `TOK_SEN`, `TOK_COS` y
 `TOK_TAN`, y los identificadores ordinarios como `TOK_ID`.
 
+El verificador devuelve 0 sin conflictos, 1 si encuentra conflictos o no puede
+leer el archivo, y 2 si la gramática está vacía o mal formada. Rechaza grupos
+sin cerrar, alternativas vacías y no terminales sin definición.
+
 ## Reconocedor descendente
 
 `parser_expr_init` prepara el lexer matemático y la arena del parser;
@@ -77,6 +81,11 @@ recursión desde el exponente construye potencias por la derecha. El punto de
 entrada exige `TOK_EOF`. El AST reutiliza las estructuras de Toy y conserva
 operandos y operadores para el evaluador; el parser no evalúa ni
 solicita valores de variables.
+
+El descenso sintáctico admite hasta 128 niveles de llamada a la regla
+`<Unario>`. Los recorridos posteriores de variables y evaluación limitan la
+profundidad del AST a 128 nodos; las cadenas de operadores asociativos pueden
+alcanzar este límite aunque no utilicen paréntesis.
 
 ## Evaluación semántica
 

@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
         while (1) {
             Token tok = lexer_siguiente(&lexer);
             if (tok.kind == TOK_ERROR) {
-                printf("Línea %d, columna %d: %s\n", tok.line, tok.col, tok.lexeme);
+                printf("Línea %d, columna %d: %s\n", tok.line, tok.col, tok.lexeme ? tok.lexeme : "memoria insuficiente");
                 token_free(&tok);
                 lexer_destroy(&lexer);
                 free(source);
