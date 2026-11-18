@@ -2,6 +2,39 @@
 
 Toy es un lenguaje didáctico creado para el curso de Compiladores. El objetivo del proyecto es especificar formalmente un lenguaje (léxico con un AFD, sintaxis con una gramática libre de contexto en EBNF), demostrar que su gramática es LL(1) y construir las primeras fases de un compilador: analizador léxico y analizador sintáctico descendente recursivo.
 
+## Calculadora de expresiones (Trabajo Práctico 3)
+
+Compila con `make calculadora_expr` y ejecuta `./calculadora_expr` (en Windows,
+`mingw32-make` genera `calculadora_expr.exe`). `make all` también compila la
+calculadora y los programas de Toy. Para ejecutar todas las pruebas usa
+`make test`.
+
+Introduce una expresión completa en una línea. La calculadora valida su
+sintaxis antes de pedir los valores numéricos de las variables, una sola vez
+por nombre y en orden de aparición. Las mayúsculas y minúsculas se distinguen.
+Por ejemplo:
+
+```text
+Expresión: x+x*2
+Valor de x: 3
+Resultado: 9
+```
+
+Se admiten `+`, `-`, `*`, `/`, `^`, negación, paréntesis y las funciones
+`sin`, `sen`, `cos` y `tan` con argumentos en radianes. La potencia es
+asociativa por la derecha y tiene mayor precedencia que el signo negativo.
+Los decimales usan punto: en las expresiones se requiere un dígito a cada
+lado (`3.14`, no `.5` ni `5.`). Los valores de variables se convierten con
+`strtod`, admiten signo y notación científica, y deben ser finitos.
+
+Se notifican errores léxicos o sintácticos con su posición, valores de
+variables inválidos o fuera de rango, fin de entrada y errores matemáticos
+como división por cero o potencias fuera del dominio real. Un valor inválido
+puede ingresarse de nuevo; el fin de entrada termina el programa. Los códigos
+de salida son 0 para éxito, 1 para errores de lectura o recursos, 2 para una
+expresión inválida, 3 para fin de entrada y 4 para error de evaluación.
+Detalles de la gramática: [documentación de expresiones](docs/gramatica_expresiones_matematicas.md).
+
 ## Ejemplo de programa Toy
 
 ```toy
@@ -59,7 +92,7 @@ Explicación breve: el programa define funciones en ámbito global, termina con 
 - Analizador sintáctico descendente recursivo LL(1) en C que construye un AST.
 - Herramienta de verificación de gramáticas LL(1) y cálculo de conjuntos (`PRIMERO`/`SIGUIENTE`) en C.
 
-**No implementadas:**
+**No implementadas para programas Toy:**
 - Análisis semántico
 - Verificación de tipos
 - Generación de código / intérprete
@@ -126,7 +159,7 @@ toy-programming-language/
 
 > **Nota para Windows (MinGW/MSYS2):** En lugar del comando `make`, utiliza `mingw32-make` (o agrega un alias). El Makefile detecta automáticamente Windows para adaptar las extensiones `.exe` y comandos de limpieza.
 
-1. **Compilar los binarios principales (`toy_c` y `toy_ll1`):**
+1. **Compilar los binarios principales (`toy_c`, `toy_ll1` y `calculadora_expr`):**
    ```bash
    make all
    # O en Windows:
@@ -140,7 +173,7 @@ toy-programming-language/
    # O en Windows:
    mingw32-make test
    ```
-   En Linux/macOS compila con `AddressSanitizer` (`-fsanitize=address,undefined`); en Windows compila en modo debug `-g` y ejecuta las 9 suites de pruebas.
+   En Linux/macOS compila con AddressSanitizer y UBSan (`-fsanitize=address,undefined`); en Windows compila en modo debug `-g`.
 
 3. **Compilar en modo depuración:**
    ```bash
