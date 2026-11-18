@@ -42,9 +42,7 @@ De menor a mayor precedencia:
 - Se admiten espacios entre tokens. El modo matemático no trata
   `--` como comentario de Toy: `1--2` representa `1 - (-2)`.
 
-La gramática describe sintaxis; la validación de valores numéricos, la
-solicitud de variables y los errores de evaluación corresponden a etapas
-posteriores. El punto medio `·` usado en el enunciado representa multiplicación;
+La gramática describe sintaxis. El punto medio `·` usado en el enunciado representa multiplicación;
 su representación textual en este lenguaje es `*`.
 
 ## Verificación LL(1)
@@ -77,5 +75,29 @@ Las funciones internas siguen las reglas de la gramática: `expr`, `termino`,
 resta, multiplicación y división construyen nodos por la izquierda; la
 recursión desde el exponente construye potencias por la derecha. El punto de
 entrada exige `TOK_EOF`. El AST reutiliza las estructuras de Toy y conserva
-operandos y operadores para una etapa posterior; este módulo no evalúa ni
+operandos y operadores para el evaluador; el parser no evalúa ni
 solicita valores de variables.
+
+## Evaluación semántica
+
+`evaluador_expr` recorre recursivamente el AST sin modificarlo, con el parser
+todavía vivo. Primero se valida la expresión completa; después se evalúa el
+árbol resultante. Así se realiza la evaluación semántica del enunciado en una
+pasada posterior, en vez de calcular durante el descenso sintáctico, y se
+puede validar antes de solicitar valores sin duplicar el parser. La futura
+interfaz podrá reutilizar el mismo AST validado.
+
+Los literales se convierten con `strtod`; se comprueba la conversión completa,
+`ERANGE` y la finitud. Se usa el `LC_NUMERIC` activo, que debe conservar el
+punto decimal del lenguaje (por defecto es la configuración C). La resolución
+de identificadores se delega a un callback opcional con contexto; el
+evaluador no realiza entrada ni salida. El llamador debe proporcionar un
+valor finito por cada variable y conservar el AST hasta acabar la evaluación.
+
+Se admiten los operadores y funciones de la gramática, con trigonometría en
+radianes. Se rechazan divisiones entre cero, errores de dominio o rango de
+`pow`, resultados no finitos, variables sin valor y nodos no admitidos. La
+conversión numérica y `pow` también rechazan `ERANGE` por subdesbordamiento;
+no se utiliza una tolerancia artificial para declarar indefinida `tan`.
+`ExprResultado` distingue éxito y error; el valor solo es válido en caso de
+éxito.
