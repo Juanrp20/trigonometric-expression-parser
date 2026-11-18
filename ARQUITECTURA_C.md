@@ -1,6 +1,6 @@
 # Arquitectura de Migración a C99 (`toy-programming-language`)
 
-Documento técnico que detalla la migración de los componentes de Python a **C puro estándar C99**, manteniendo paridad funcional, modularidad, cero fugas de memoria y reporte exacto de errores.
+Documento histórico que describe la migración de los componentes de Toy de Python a **C puro estándar C99**. Algunas rutas absolutas y referencias a pruebas reflejan el entorno original; para el estado actual del Trabajo Práctico 3, consultar el README y la documentación en `docs/`.
 
 ---
 
@@ -97,8 +97,8 @@ El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 
 - Implementa un asignador de memoria por arena (`Arena`).
 - Toda la memoria asignada para el AST y cadenas dinámicas se registra de forma centralizada.
-- `arena_free()` libera el 100% de los nodos en una sola operación al terminar o al recuperarse de un error.
-- Validado con `gcc -fsanitize=address,undefined` (cero leaks, cero memory corruption).
+- `arena_free()` libera las asignaciones registradas en una sola operación al terminar o al recuperarse de un error.
+- Las pruebas actuales se ejecutaron con AddressSanitizer y UBSan. LeakSanitizer no pudo ejecutarse en el entorno de validación por una restricción de `ptrace`; no se comprobó ausencia de fugas.
 
 ---
 
@@ -117,7 +117,7 @@ El Árbol de Sintaxis Abstracta modela cada nodo mediante uniones discriminadas:
 
 ## 7. Suite de Pruebas ([`tests/test_c.c`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/tests/test_c.c))
 
-La suite unitaria e integradora cubre 9 suites de pruebas críticas con 100% de éxito:
+La suite original contiene nueve grupos de pruebas; la ejecución final de esos grupos pasó. No se midió cobertura:
 1. `test_lexer_basicos`: palabras reservadas, operadores, números, cadenas y comentarios.
 2. `test_lexer_errores`: validación de los 7 mensajes de error léxico exactos.
 3. `test_parser_ok`: análisis sintáctico de [`ejemplos/ok_minimo.toy`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/ejemplos/ok_minimo.toy) y [`ejemplos/ok_completo.toy`](file:///home/juanma/Documentos/compiladores/Tarea2/toy-programming-language/ejemplos/ok_completo.toy).

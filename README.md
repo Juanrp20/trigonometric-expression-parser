@@ -1,18 +1,48 @@
-# Toy
+# Analizador y Evaluador de Expresiones Trigonométricas — Trabajo Práctico 3 de Compiladores
 
-Toy es un lenguaje didáctico creado para el curso de Compiladores. El objetivo del proyecto es especificar formalmente un lenguaje (léxico con un AFD, sintaxis con una gramática libre de contexto en EBNF), demostrar que su gramática es LL(1) y construir las primeras fases de un compilador: analizador léxico y analizador sintáctico descendente recursivo.
+Calculadora de consola en C99 que reconoce expresiones aritméticas y trigonométricas, solicita los valores de sus variables y calcula un resultado `double`. Se desarrolló reutilizando el lexer, el AST, el gestor de memoria y el verificador LL(1) de la Tarea 2 (Toy).
 
-## Calculadora de expresiones (Trabajo Práctico 3)
+## Objetivos y arquitectura
 
-Compila con `make calculadora_expr` y ejecuta `./calculadora_expr` (en Windows,
-`mingw32-make` genera `calculadora_expr.exe`). `make all` también compila la
-calculadora y los programas de Toy. Para ejecutar todas las pruebas usa
-`make test`.
+El trabajo aplica análisis léxico, sintáctico y semántico a una gramática LL(1). El flujo es:
 
-Introduce una expresión completa en una línea. La calculadora valida su
-sintaxis antes de pedir los valores numéricos de las variables, una sola vez
-por nombre y en orden de aparición. Las mayúsculas y minúsculas se distinguen.
-Por ejemplo:
+```text
+expresión → lexer matemático → parser descendente → AST validado
+          → variables únicas → evaluador double → resultado
+```
+
+El parser valida toda la entrada antes de solicitar valores. El evaluador recorre el AST mediante un callback para resolver variables; no modifica el árbol. Los nombres se solicitan una vez, en orden de primera aparición, distinguiendo mayúsculas de minúsculas.
+
+El proyecto utiliza C99, `make`, la biblioteca estándar C y `math.h` (`-lm`). No usa bibliotecas externas para analizar expresiones.
+
+## Estructura
+
+```text
+include/   interfaces: lexer, tokens, parser, AST, evaluador y consola
+src/       implementaciones, verificador LL(1) y ejecutables
+    main_expr.c, consola_expr.c     calculadora y entrada de variables
+    parser_expr.c, evaluador_expr.c reconocedor y evaluación
+    lexer.c, token.c, ast.c, arena.c componentes reutilizados
+    parser.c, main.c, ll1.c, set.c, main_ll1.c componentes Toy y LL(1)
+gramatica/ expresiones_matematicas.txt y gramáticas Toy
+tests/     pruebas Toy, lexer, parser, evaluador, consola y validación final
+docs/      enunciado, gramática, trazabilidad, casos e informe técnico
+ejemplos/  programas Toy de regresión
+```
+
+## Compilación y ejecución
+
+Requisitos: compilador C99, `make` y biblioteca matemática. En Linux:
+
+```sh
+make all                    # calculadora_expr, toy_c y toy_ll1
+make calculadora_expr       # solo la calculadora
+./calculadora_expr
+```
+
+En Windows con MinGW se puede usar `mingw32-make`; el ejecutable se denomina `calculadora_expr.exe`. `make debug` compila los tres ejecutables en modo de depuración; en sistemas distintos de Windows añade AddressSanitizer y UBSan.
+
+Una expresión ocupa una línea y puede contener espacios:
 
 ```text
 Expresión: x+x*2
@@ -20,260 +50,46 @@ Valor de x: 3
 Resultado: 9
 ```
 
-Se admiten `+`, `-`, `*`, `/`, `^`, negación, paréntesis y las funciones
-`sin`, `sen`, `cos` y `tan` con argumentos en radianes. La potencia es
-asociativa por la derecha y tiene mayor precedencia que el signo negativo.
-Los decimales usan punto: en las expresiones se requiere un dígito a cada
-lado (`3.14`, no `.5` ni `5.`). Los valores de variables se convierten con
-`strtod`, admiten signo y notación científica, y deben ser finitos.
+Admite `+`, `-`, `*`, `/`, `^`, negación, paréntesis y `sin`, `sen`, `cos`, `tan`. Las funciones usan radianes. La potencia es asociativa por la derecha y tiene mayor precedencia que la negación: `2^3^2 = 512` y `-2^2 = -4`.
 
-Se notifican errores léxicos o sintácticos con su posición, valores de
-variables inválidos o fuera de rango, fin de entrada y errores matemáticos
-como división por cero o potencias fuera del dominio real. Un valor inválido
-puede ingresarse de nuevo; el fin de entrada termina el programa. Los códigos
-de salida son 0 para éxito, 1 para errores de lectura o recursos, 2 para una
-expresión inválida, 3 para fin de entrada y 4 para error de evaluación.
-Detalles de la gramática: [documentación de expresiones](docs/gramatica_expresiones_matematicas.md).
+Los números **en expresiones** son enteros o decimales con dígitos a ambos lados del punto: `3.14`, no `.5`, `5.` ni `1e3`. Los valores introducidos para variables se interpretan con `strtod`, admiten signo y notación científica y deben ser finitos. El programa fija `LC_NUMERIC` en `C`, por lo que el separador decimal es el punto.
 
-## Ejemplo de programa Toy
+Las expresiones inválidas se informan con línea y columna antes de solicitar valores. Las entradas de variables inválidas se pueden reintentar. Se informan errores de dominio, división por cero y resultados fuera de rango. La salida es 0 si tiene éxito; 1 por error de lectura o recursos; 2 por expresión inválida; 3 por fin de entrada; y 4 por error de evaluación.
+
+## Pruebas y comprobación LL(1)
+
+```sh
+make clean
+make all
+make test
+./toy_ll1 gramatica/expresiones_matematicas.txt --sets
+python3 tests/validacion_final.py   # opcional: pruebas de extremo a extremo
+```
+
+En Linux/macOS `make test` usa AddressSanitizer y UBSan. Si el entorno impide ejecutar LeakSanitizer bajo `ptrace`, se puede ejecutar `ASAN_OPTIONS=detect_leaks=0 make test`; esa ejecución no verifica fugas. No se ha medido el porcentaje de cobertura. La validación adicional requiere Python 3 y usa solo su biblioteca estándar.
+
+Los resultados y la comparación matemática se encuentran en [casos de prueba](docs/casos_prueba_validacion.md); la [matriz de trazabilidad](docs/matriz_trazabilidad.md) vincula requisitos, implementación y pruebas. La [gramática documentada](docs/gramatica_expresiones_matematicas.md) explica el contrato léxico y la verificación. El [informe PDF](docs/informe_tecnico.pdf) y su [fuente editable](docs/informe_tecnico.tex) son entregables académicos.
+
+Para regenerar el PDF a partir de la fuente, con pdfLaTeX instalado, ejecuta
+dos veces `pdflatex -output-directory=docs docs/informe_tecnico.tex`; la segunda
+pasada actualiza el índice.
+
+## Limitaciones conocidas
+
+- La consola evalúa una sola expresión por ejecución y requiere multiplicación explícita (`2*x`). No se incluyen constantes predefinidas como `pi`.
+- La profundidad de anidamiento está limitada por la pila del proceso. Los literales y potencias que producen `ERANGE`, incluido subdesbordamiento, se rechazan. Las funciones cercanas a singularidades no se rechazan mediante tolerancias arbitrarias.
+- Algunas asignaciones de memoria heredadas del lexer y del AST no recuperan de forma controlada una falla de reserva; no se ha probado ese escenario. LeakSanitizer no pudo comprobarse en el entorno de validación por la restricción `ptrace`.
+
+## Componentes heredados de Toy
+
+La Tarea 2 conserva su parser, lexer predeterminado, gramática y verificaciones. Se puede ejecutar `./toy_c ejemplos/ok_completo.toy` o verificar la gramática con `./toy_ll1 gramatica/toy_gramatica.txt`. El siguiente ejemplo sigue siendo un programa Toy:
 
 ```toy
--- programa completo de prueba
-func suma(a,b)
-  ret a+b
-end
-
 func main()
-  local x := 5
-  local y := 3.14
-  local s1 := "hola"
-  local s2 := 'mundo'
-  x := suma(x, 1)
-  if x > 0 then
-    print x
-  else
-    println y
-  end
-  while x > 0 do
-    x := x-1
-  end
-  for i := 1, 10, 2 do
-    print i
-  end
-  for j := 0, 5 do
-    println j
-  end
+  local x := 3.14
+  println x
   ret 0
 end main()
 ```
 
-Explicación breve: el programa define funciones en ámbito global, termina con `func main() ... end main()` como punto de entrada, usa `local` para variables, estructuras de control `if/then/else/end`, `while/do/end`, `for` con paso opcional, `print`/`println`, `ret` y llamadas a funciones.
-
-## Resumen del lenguaje
-
-| Aspecto | Descripción |
-|---|---|
-| Estructura del programa | Secuencia de funciones `func nombre(params) ... end` terminada por `func main() ... end main()`. `main` es palabra reservada. |
-| Variables | `local x := e` y asignación `x := e` mediante `:=`. |
-| Control de flujo | `if`/`then`/`else`/`end`, `while`/`do`/`end`, `for` ID `:=` expr `,` expr [`,` expr] `do` ... `end` (paso opcional). |
-| Salida | `print` / `println`. |
-| Retorno | `ret` (solo al final de un bloque). |
-| Llamadas | Llamadas a funciones como sentencia y en expresión. |
-| Literales | Números enteros y decimales, cadenas con comillas simples o dobles, `true`/`false`. |
-| Comentarios | `--` hasta fin de línea. |
-| Palabras reservadas tipo | `number`, `string`, `bool` son palabras reservadas aún sin uso en la gramática. |
-
-**Precedencia de operadores (de menor a mayor):** `or`; `and`; `==`, `~=`; `<`, `<=`, `>`, `>=`; `+`, `-`; `*`, `/`; `%`; unarios `-` y `~`; `^` (asociativa por la derecha).
-
-## Fases del compilador
-
-**Implementadas en C (estándar C99):**
-- Analizador léxico escrito a mano en C, equivalente al AFD documentado en `docs/`.
-- Analizador sintáctico descendente recursivo LL(1) en C que construye un AST.
-- Herramienta de verificación de gramáticas LL(1) y cálculo de conjuntos (`PRIMERO`/`SIGUIENTE`) en C.
-
-**No implementadas para programas Toy:**
-- Análisis semántico
-- Verificación de tipos
-- Generación de código / intérprete
-
-## Verificación LL(1)
-
-La gramática original presentaba dos conflictos:
-- Conflicto en `<Program>`: `{ <FuncDecl> } <MainCall>` con ambos empezando por `"func"`, imposible de decidir con un token de lookahead.
-- Conflicto en `<RetStmt>`: `<RetStmt> -> "ret" [ <Expr> ]` con `ID` en `PRIMERO(Expr)` y en `SIGUIENTE(RetStmt)`.
-
-Se resolvieron:
-- Factorizando el programa como `<Program> -> "func" <FuncRest>` distinguiendo `main` de otras funciones.
-- Eliminando `<RetStmt>` de `<Statement>` y colocándolo opcional al final de `<Block>` (`<Block> -> { <Statement> } [ <RetStmt> ]`), de modo que `ret` solo aparece como última instrucción del bloque.
-
-## Estructura del repositorio
-
-```
-toy-programming-language/
-├── Makefile                           # Compilación con gcc C99
-├── ARQUITECTURA_C.md                  # Especificación de migración a C99
-├── include/
-│   ├── arena.h                        # Asignador por arena para AST
-│   ├── ast.h                          # Estructuras AST y constructores
-│   ├── lexer.h                        # Escáner léxico C99
-│   ├── ll1.h                          # Verificador EBNF y cálculo LL(1)
-│   ├── parser.h                       # Parser descendente recursivo
-│   ├── set.h                          # Estructura de conjuntos dinámicos de cadenas
-│   └── token.h                        # Definición de tokens y palabras reservadas
-├── src/
-│   ├── arena.c
-│   ├── ast.c
-│   ├── lexer.c
-│   ├── ll1.c
-│   ├── main.c                         # Punto de entrada de toy_c
-│   ├── main_ll1.c                     # Punto de entrada de toy_ll1
-│   ├── parser.c
-│   ├── set.c
-│   └── token.c
-├── docs/
-│   ├── especificacion_y_diseno_formal_del_lenguaje_toy.md
-│   ├── gramatica_formal_del_lenguaje_toy.md
-│   └── gramatica_toy.md
-├── gramatica/
-│   ├── toy_gramatica.txt              (corregida, LL(1))
-│   └── toy_gramatica_original.txt     (original, NO LL(1))
-├── ejemplos/
-│   ├── ok_completo.toy
-│   └── ok_minimo.toy
-└── tests/
-    └── test_c.c                       # Suite de pruebas automatizadas en C
-```
-
-## Guía paso a paso: Compilación y Ejecución
-
-### 1. Requisitos previos
-- Compilador de C compatible con **C99** (recomendado: `gcc` versión 9+ o `clang`).
-- Utilidad `make`.
-
----
-
-### 2. Paso a paso de compilación
-
-#### Opción A: Usando `make` (Recomendado)
-
-> **Nota para Windows (MinGW/MSYS2):** En lugar del comando `make`, utiliza `mingw32-make` (o agrega un alias). El Makefile detecta automáticamente Windows para adaptar las extensiones `.exe` y comandos de limpieza.
-
-1. **Compilar los binarios principales (`toy_c`, `toy_ll1` y `calculadora_expr`):**
-   ```bash
-   make all
-   # O en Windows:
-   mingw32-make all
-   ```
-   Esto compila con banderas de optimización `-O2`, `-std=c99`, `-Wall`, `-Wextra` y `-pedantic`.
-
-2. **Compilar y ejecutar la suite de pruebas automatizadas:**
-   ```bash
-   make test
-   # O en Windows:
-   mingw32-make test
-   ```
-   En Linux/macOS compila con AddressSanitizer y UBSan (`-fsanitize=address,undefined`); en Windows compila en modo debug `-g`.
-
-3. **Compilar en modo depuración:**
-   ```bash
-   make debug
-   # O en Windows:
-   mingw32-make debug
-   ```
-
-4. **Limpiar binarios generados:**
-   ```bash
-   make clean
-   # O en Windows:
-   mingw32-make clean
-   ```
-
----
-
-#### Opción B: Compilación manual directa con `gcc` (sin `make`)
-
-Si no tienes `make` instalado, compila directamente con los siguientes comandos:
-
-1. **Compilar el compilador (`toy_c`):**
-   ```bash
-   gcc -Wall -Wextra -std=c99 -pedantic -Iinclude -O2 -o toy_c \
-       src/token.c src/lexer.c src/arena.c src/ast.c src/parser.c src/main.c
-   ```
-
-2. **Compilar el verificador LL(1) (`toy_ll1`):**
-   ```bash
-   gcc -Wall -Wextra -std=c99 -pedantic -Iinclude -O2 -o toy_ll1 \
-       src/set.c src/ll1.c src/main_ll1.c
-   ```
-
-3. **Compilar y ejecutar las pruebas (`test_c`):**
-   - **En Linux / macOS:**
-     ```bash
-     gcc -Wall -Wextra -std=c99 -pedantic -Iinclude -g -fsanitize=address,undefined -o test_c \
-         src/token.c src/lexer.c src/arena.c src/ast.c src/parser.c src/set.c src/ll1.c tests/test_c.c
-     ./test_c
-     ```
-   - **En Windows (PowerShell / CMD):**
-     ```powershell
-     gcc -Wall -Wextra -std=c99 -pedantic -Iinclude -g -o test_c.exe src/token.c src/lexer.c src/arena.c src/ast.c src/parser.c src/set.c src/ll1.c tests/test_c.c
-     .\test_c.exe
-     ```
-
----
-
-### 3. Guía de uso de los ejecutables
-
-#### A. Analizador Léxico y Sintáctico (`./toy_c`)
-
-- **Validar sintaxis (salida `OK` si es válido, reporte de error si no):**
-  ```bash
-  ./toy_c ejemplos/ok_completo.toy
-  ```
-
-- **Inspeccionar tokens reconocidos por el lexer:**
-  ```bash
-  ./toy_c ejemplos/ok_completo.toy --tokens
-  ```
-
-- **Imprimir el Árbol de Sintaxis Abstracta (AST):**
-  ```bash
-  ./toy_c ejemplos/ok_completo.toy --ast
-  ```
-
-#### B. Verificador de Gramáticas LL(1) (`./toy_ll1`)
-
-- **Verificar conflictos en la gramática LL(1) corregida (debe retornar `ninguno`):**
-  ```bash
-  ./toy_ll1 gramatica/toy_gramatica.txt
-  ```
-
-- **Verificar conflictos en la gramática original (debe reportar 2 conflictos):**
-  ```bash
-  ./toy_ll1 gramatica/toy_gramatica_original.txt
-  ```
-
-- **Calcular e imprimir los conjuntos PRIMERO y SIGUIENTE:**
-  ```bash
-  ./toy_ll1 gramatica/toy_gramatica.txt --sets
-  ```
-
-## Cambios respecto a la gramática/especificación original
-
-| Punto | Cambio |
-|---|---|
-| Conflicto en <Program> | Se reemplaza `<Program> -> { <FuncDecl> } <MainCall>` por `<Program> -> "func" <FuncRest>` con `<FuncRest>` factorizado entre `main` y función con ID. |
-| Conflicto en <RetStmt> | Se elimina `<RetStmt>` de `<Statement>` y se pasa a `<Block> -> { <Statement> } [ <RetStmt> ]`. `ret` solo puede aparecer como última instrucción del bloque. |
-| Documentación | Se actualizan secciones en docs/gramatica_formal_del_lenguaje_toy.md, se agrega "Verificación LL(1)" y apéndice con gramática original (no LL(1)). |
-| Tokens | Se agrega `TOK-MAIN`. Se renombran `number/string/bool` a `TOK-KW-NUMBER/TOK-KW-STRING/TOK-KW-BOOL` (los literales siguen siendo `TOK-NUMBER`/`TOK-STRING`). |
-| Léxico | Letra = [a-zA-Z_] completo. Se elimina Exponente. Se agrega Punto `[.]`. Blanco = espacio,\t,\r,\v,\f (sin `\n`). Se separan comillas en DQ/SQ. Se agregan `:` y `.` al alfabeto. |
-| Números y cadenas | Números: dígitos+ opcionalmente seguidos de "." y dígitos+ (3.14 válido; "5." es error). Cadenas con misma comilla, sin salto de línea. |
-| AFD | Se completa tabla en docs/especificacion_y_diseno_formal_del_lenguaje_toy.md. |
-| Notas de diseño | Se agregan notas de diseño (precedencia de `%`, distinción palabras reservadas/identificadores, maximal munch). |
-
-## Decisiones de diseño y pendientes
-
-- `%` tiene mayor precedencia que `*` y `/` (intencional).
-- Cadenas no multilínea.
-- `number`/`string`/`bool` son palabras reservadas aún sin uso en la gramática.
-- Léxico usa máxima coincidencia (maximal munch).
+El analizador y evaluador de expresiones es independiente de la sintaxis de programas Toy. La documentación heredada permanece en `docs/` y `ARQUITECTURA_C.md`.

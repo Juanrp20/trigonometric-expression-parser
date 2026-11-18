@@ -52,9 +52,10 @@ $(TARGET_LL1): $(LL1_SRC) $(MAIN_LL1_SRC)
 $(TARGET_EXPR): $(CONSOLE_SRC) src/main_expr.c
 	$(CC) $(CFLAGS) -o $@ $(CONSOLE_SRC) src/main_expr.c $(LDLIBS)
 
-debug: $(SRC) $(LL1_SRC) $(MAIN_SRC) $(MAIN_LL1_SRC)
+debug: $(SRC) $(LL1_SRC) $(MAIN_SRC) $(MAIN_LL1_SRC) $(CONSOLE_SRC) src/main_expr.c
 	$(CC) $(DEBUG_FLAGS) -o $(TARGET) $(SRC) $(MAIN_SRC)
 	$(CC) $(DEBUG_FLAGS) -o $(TARGET_LL1) $(LL1_SRC) $(MAIN_LL1_SRC)
+	$(CC) $(DEBUG_FLAGS) -o $(TARGET_EXPR) $(CONSOLE_SRC) src/main_expr.c $(LDLIBS)
 
 $(TEST_BIN): $(SRC) $(LL1_SRC) $(TEST_SRC)
 	$(CC) $(DEBUG_FLAGS) -o $@ $(SRC) $(LL1_SRC) $(TEST_SRC)

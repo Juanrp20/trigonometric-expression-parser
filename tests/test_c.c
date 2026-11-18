@@ -637,6 +637,6 @@ int main(void) {
     test_readme_ejemplo();
     test_apendice_gramatica_original();
     test_afd_especificacion();
-    printf("\nTODAS LAS PRUEBAS EN C PASARON CON ÉXITO (100%% COBERTURA)\n");
+    printf("\nTODAS LAS PRUEBAS EN C PASARON CON ÉXITO\n");
     return 0;
 }

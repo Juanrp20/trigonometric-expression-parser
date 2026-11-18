@@ -1,0 +1,123 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{cmap}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{array,longtable,booktabs}
+\usepackage[hidelinks]{hyperref}
+\usepackage{amsmath}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\renewcommand{\contentsname}{Índice}
+\emergencystretch=2em
+\begin{document}
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\Large Trabajo Práctico 3 de Compiladores\par}
+\vspace{1cm}
+{\LARGE\bfseries Analizador y Evaluador de Expresiones Trigonométricas\par}
+\vspace{2cm}
+{\large Informe técnico\par}
+\vspace{3cm}
+\begin{tabular}{ll}
+Asignatura: & Compiladores \\
+Estudiantes: & \underline{\hspace{7cm}} \\
+Profesor: & \underline{\hspace{7cm}} \\
+Institución: & \underline{\hspace{7cm}} \\
+Fecha: & \underline{\hspace{7cm}} \\
+\end{tabular}
+\vfill
+\end{titlepage}
+\tableofcontents
+\newpage
+\section{Introducción}
+El trabajo aborda el reconocimiento y evaluación de expresiones que combinan números reales, variables simbólicas, operaciones aritméticas y funciones trigonométricas. La cadena de procesamiento separa la identificación de símbolos, la validación de su estructura y el cálculo de su significado numérico. Esta separación permite detectar errores antes de solicitar valores y facilita la comprobación de cada componente.
+
+La implementación se desarrolló en C99 a partir de la Tarea 2, reutilizando partes del lenguaje Toy sin eliminar sus programas ni sus pruebas. La sintaxis matemática tiene una gramática independiente y un lexer en modo específico.
+\section{Objetivos}
+\textbf{Objetivo general.} Diseñar e implementar un reconocedor LL(1) y evaluador de expresiones aritméticas y trigonométricas con resultados \texttt{double}.
+
+\textbf{Objetivos específicos.} Definir una gramática y comprobar sus conjuntos de selección; reconocer expresiones mediante descenso recursivo; construir un AST; solicitar una vez el valor de cada variable; evaluar operaciones y funciones en radianes; detectar errores y validar los resultados mediante casos reproducibles.
+\section{Diseño de la gramática}
+La gramática final, en EBNF, usa \texttt{<Inicio>} como símbolo inicial. Las llaves representan repetición opcional y los corchetes una aparición opcional:
+\begin{verbatim}
+<Inicio>   -> <Expr>
+<Expr>     -> <Termino> { ( "+" | "-" ) <Termino> }
+<Termino>  -> <Unario> { ( "*" | "/" ) <Unario> }
+<Unario>   -> "-" <Unario> | <Potencia>
+<Potencia> -> <Primario> [ "^" <Unario> ]
+<Primario> -> NUMBER | ID | "(" <Expr> ")"
+              | <Funcion> "(" <Expr> ")"
+<Funcion>  -> "sin" | "sen" | "cos" | "tan"
+\end{verbatim}
+Los no terminales se escriben entre ángulos. Los terminales son \texttt{NUMBER}, \texttt{ID}, los operadores, paréntesis y los cuatro nombres de función. \texttt{ID} designa una variable simbólica; los nombres de función no se clasifican como identificadores. El programa exige fin de entrada después de la expresión.
+
+La precedencia aumenta desde suma y resta, multiplicación y división, negación unaria, hasta potencia y primarios. Las primeras operaciones se agrupan por la izquierda. La potencia se agrupa por la derecha: \verb|2^3^2| equivale a \verb|2^(3^2)|. La potencia precede a la negación: \verb|-2^2| equivale a \verb|-(2^2)|; también se admite \verb|2^-2|. Los paréntesis alteran el agrupamiento. \texttt{sen} es un alias de \texttt{sin}; todas las funciones reciben una expresión entre paréntesis y operan en radianes.
+\section{Verificación LL(1)}
+El verificador heredado expande opciones y repeticiones a producciones auxiliares, calcula anulabilidad, PRIMERO y SIGUIENTE por punto fijo y compara los conjuntos de selección de las alternativas. La orden \texttt{./toy\_ll1 gramatica/expresiones\_matematicas.txt --sets} produjo \texttt{ninguno}, es decir, cero conflictos detectados. Se presupone la clasificación léxica disjunta de las funciones e \texttt{ID}.
+
+Los conjuntos principales obtenidos son los siguientes. Se escribe \texttt{\$} para fin de entrada y F para \{sin, sen, cos, tan\}.
+\begin{center}
+\begin{tabular}{lll}\toprule
+No terminal & PRIMERO & SIGUIENTE \\\midrule
+Inicio & \{ (, -, F, ID, NUMBER \} & \{ \$ \} \\
+Expr & \{ (, -, F, ID, NUMBER \} & \{ ), \$ \} \\
+Termino & \{ (, -, F, ID, NUMBER \} & \{ ), +, -, \$ \} \\
+Unario & \{ (, -, F, ID, NUMBER \} & \{ ), *, /, +, -, \$ \} \\
+Potencia & \{ (, F, ID, NUMBER \} & \{ ), *, /, +, -, \$ \} \\
+Primario & \{ (, F, ID, NUMBER \} & \{ ), *, /, +, -, \verb|^|, \$ \} \\
+Funcion & F & \{ ( \} \\\bottomrule
+\end{tabular}
+\end{center}
+Las alternativas de primario tienen comienzos distintos, y los conjuntos de selección de las reglas auxiliares son disjuntos. La tabla predictiva completa no es necesaria para el reconocedor recursivo utilizado.
+\section{Análisis léxico}
+\texttt{lexer\_init\_matematico} selecciona el modo matemático; \texttt{lexer\_init} conserva Toy. El lector reconoce operadores, paréntesis, números, identificadores y las cuatro funciones, con línea y columna. Los enteros y decimales de una expresión siguen el patrón \verb|[0-9]+(\.[0-9]+)?|; no se aceptan \texttt{.5}, \texttt{5.} ni exponentes en literales de expresión. Los identificadores admiten letras ASCII, dígitos tras el primer carácter y guion bajo. El maximal munch distingue \texttt{sin} de \texttt{sinus}. En modo matemático \texttt{--} son dos signos negativos, no un comentario. Un carácter inválido o un decimal mal formado produce un token de error.
+\section{Análisis sintáctico}
+\texttt{parser\_expr.c} utiliza un token de preanálisis. Las funciones \texttt{expr}, \texttt{termino}, \texttt{unario}, \texttt{potencia}, \texttt{primario} y \texttt{funcion} corresponden a las reglas de la gramática. Los bucles de suma y producto construyen nodos sucesivos por la izquierda; la recursión del exponente construye el subárbol derecho. El punto de entrada exige EOF. Los errores informan posición, token encontrado y elemento esperado cuando corresponde. Se rechazan, entre otros, \texttt{sin()}, \texttt{2+} y texto sobrante.
+\section{Árbol de sintaxis abstracta}
+Se reutiliza \texttt{ASTExpr} de Toy: número e identificador guardan su texto; los paréntesis y la negación contienen un hijo; el binario contiene operador e hijos; la llamada contiene nombre y argumentos. Por ejemplo, \verb|2+3*4| produce una suma cuyo hijo derecho es una multiplicación. Los operadores se almacenan como cadenas tales como \texttt{TOK-PLUS} y \texttt{TOK-EXP}. La arena y los nodos pertenecen al parser y son válidos hasta \texttt{parser\_expr\_destroy}.
+\section{Evaluación semántica}
+El evaluador recorre el AST sin modificarlo: convierte números con \texttt{strtod}, consulta variables mediante un callback, evalúa hijos recursivamente y aplica el operador o función correspondiente. Usa \texttt{double}, \texttt{pow}, \texttt{sin}, \texttt{cos} y \texttt{tan}; verifica conversión, rango, dominio, división por cero y valores no finitos. El resultado distingue explícitamente éxito y error.
+
+El enunciado propone calcular durante el descenso sintáctico. El diseño acordado realiza la evaluación semántica \emph{después} de validar toda la expresión y construir el AST. Esta adaptación permite solicitar variables únicamente tras confirmar la sintaxis y reutilizar el árbol sin duplicar el parser. La evaluación sigue la estructura construida por el descenso recursivo.
+\section{Interfaz de consola}
+\texttt{calculadora\_expr} fija \texttt{LC\_NUMERIC} en \texttt{C}, lee una expresión por línea y la analiza. Si es válida, recorre el AST de izquierda a derecha, registra cada variable distinta y solicita su valor una sola vez. Los valores inválidos permiten reintento; EOF termina la ejecución. Después evalúa y muestra el resultado. Se liberan la lista de variables, la arena del parser y la línea. Los valores de variables se convierten con \texttt{strtod} y admiten signo y notación científica, a diferencia de los literales de la gramática.
+\section{Casos de prueba y resultados}
+Se ejecutaron los siete ejemplos del enunciado con el programa de consola y se compararon con referencias calculadas con \texttt{math} de Python, mediante tolerancia absoluta y relativa de $10^{-12}$. Python y C pueden compartir la biblioteca matemática del sistema. Los resultados siguientes son los observados, redondeados a 15 cifras; el documento \texttt{casos\_prueba\_validacion.md} contiene los valores con mayor precisión y más pruebas.
+\begin{longtable}{p{5.7cm}p{2.5cm}p{3.8cm}l}\toprule
+Expresión & Variables & Resultado & Estado \\\midrule\endhead
+\verb|sin(3.14/2)+cos(0)*2^2| & -- & 4.99999968293183 & Pasa \\
+\verb|sin(x)+cos(y)| & x=0, y=0 & 1 & Pasa \\
+\verb|sin(cos(x))+tan(y)/cos(x)| & x=0, y=0 & 0.841470984807897 & Pasa \\
+\verb|cos(x)^2+sin(x)^2| & x=1 & 1 & Pasa \\
+\verb|sin(x)| & x=1 & 0.841470984807897 & Pasa \\
+\verb|cos(x+y)| & x=1, y=2 & -0.989992496600445 & Pasa \\
+\verb|tan(x^2+sin(x))| & x=1 & -3.60380353200881 & Pasa \\
+\verb|2+3*4| & -- & 14 & Pasa \\
+\verb|2^3^2| & -- & 512 & Pasa \\
+\verb|-2^2| & -- & -4 & Pasa \\
+\verb|2^-2| & -- & 0.25 & Pasa \\
+\verb|x+x| & x=3 & 6 & Pasa \\\bottomrule
+\end{longtable}
+El primer ejemplo es aproximadamente 4.99999968293183, no exactamente 5, porque 3.14 aproxima $\pi$. La identidad $\cos^2(x)+\sin^2(x)\approx 1$ pasó para $x=-7,-1,0,0.5,3.14,100$.
+
+\begin{center}\begin{tabular}{lll}\toprule
+Entrada & Resultado observado & Estado \\\midrule
+\texttt{sin()}, \texttt{2+}, \texttt{cos(x} & Error sintáctico, código 2 & Pasa \\
+\texttt{sin(1,2)} & Error léxico, código 2 & Pasa \\
+\texttt{1/0}, \verb|0^-1| & Error matemático, código 4 & Pasa \\
+\verb|(-1)^0.5|, \verb|10^1000| & Dominio o rango, código 4 & Pasa \\\bottomrule\end{tabular}\end{center}
+Se ejecutaron \texttt{make clean}, \texttt{make all} y \texttt{ASAN\_OPTIONS=detect\_leaks=0 make test}, además de compilar con \texttt{-Werror}. Pasaron las regresiones de Toy y las pruebas del lexer, parser, evaluador y consola con AddressSanitizer y UBSan. LeakSanitizer falló por la restricción \texttt{ptrace} del entorno: no se verificó ausencia de fugas. No se midió cobertura.
+\section{Conclusiones}
+Se obtuvo un reconocedor LL(1), un AST y un evaluador numérico integrados en una consola. La separación de fases permitió reutilizar componentes de Toy, identificar errores y verificar la precedencia mediante la estructura del árbol. Se conservaron las regresiones existentes.
+
+Las limitaciones incluyen una expresión por ejecución, multiplicación explícita, literales de expresión sin notación científica y profundidad de anidamiento limitada por la pila. Algunas reservas de memoria heredadas no manejan de forma controlada su agotamiento. Los errores \texttt{ERANGE} se rechazan también en subdesbordamiento; no se aplican tolerancias arbitrarias a singularidades de la tangente.
+\section{Referencias}
+\begin{enumerate}
+\item Enunciado suministrado: \texttt{docs/compiladores\_trabajo\_pr\_ctico\_3.md}.
+\item Implementación y documentación del repositorio: \path{gramatica/expresiones_matematicas.txt}, \path{src/}, \path{tests/} y \path{docs/gramatica_expresiones_matematicas.md}.
+\item Resultados experimentales reproducibles: \path{tests/validacion_final.py} y \path{docs/casos_prueba_validacion.md}.
+\end{enumerate}
+\end{document}
