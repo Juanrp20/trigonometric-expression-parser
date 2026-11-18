@@ -46,6 +46,12 @@ void lexer_init(Lexer *l, const char *texto) {
     l->error_msg = NULL;
     l->error_line = 0;
     l->error_col = 0;
+    l->modo = LEXER_TOY;
+}
+
+void lexer_init_matematico(Lexer *l, const char *texto) {
+    lexer_init(l, texto);
+    l->modo = LEXER_MATEMATICO;
 }
 
 void lexer_destroy(Lexer *l) {
@@ -116,7 +122,16 @@ static Token leer_identificador(Lexer *l) {
         }
     }
 
-    TokenKind kind = token_lookup_keyword(buf.data);
+    TokenKind kind;
+    if (l->modo == LEXER_MATEMATICO) {
+        if (strcmp(buf.data, "sin") == 0) kind = TOK_SIN;
+        else if (strcmp(buf.data, "sen") == 0) kind = TOK_SEN;
+        else if (strcmp(buf.data, "cos") == 0) kind = TOK_COS;
+        else if (strcmp(buf.data, "tan") == 0) kind = TOK_TAN;
+        else kind = TOK_ID;
+    } else {
+        kind = token_lookup_keyword(buf.data);
+    }
     Token tok = token_create(kind, buf.data, start_line, start_col);
     buf_free(&buf);
     return tok;
@@ -208,12 +223,20 @@ Token lexer_siguiente(Lexer *l) {
             avanzar(l);
             continue;
         }
+        if (l->modo == LEXER_MATEMATICO && !es_letra(c) && !es_digito(c) &&
+            !strchr("+-*/^().", c)) {
+            int start_line = l->line, start_col = l->col;
+            char err[64];
+            avanzar(l);
+            snprintf(err, sizeof(err), "carácter '%c' no válido", (char)c);
+            return error_token(l, start_line, start_col, err);
+        }
         if (c == '-') {
             int start_line = l->line;
             int start_col = l->col;
             avanzar(l);
             int c2 = char_at(l);
-            if (c2 == '-') {
+            if (c2 == '-' && l->modo == LEXER_TOY) {
                 avanzar(l);
                 while (1) {
                     int cc = char_at(l);

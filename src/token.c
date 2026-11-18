@@ -75,6 +75,10 @@ const char *token_kind_to_str(TokenKind kind) {
         case TOK_ID:        return "TOK-ID";
         case TOK_NUMBER:    return "TOK-NUMBER";
         case TOK_STRING:    return "TOK-STRING";
+        case TOK_SIN:       return "TOK-SIN";
+        case TOK_SEN:       return "TOK-SEN";
+        case TOK_COS:       return "TOK-COS";
+        case TOK_TAN:       return "TOK-TAN";
         default:            return "TOK-UNKNOWN";
     }
 }

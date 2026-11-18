@@ -131,6 +131,104 @@ static void test_lexer_errores(void) {
     printf("OK test_lexer_errores\n");
 }
 
+typedef struct {
+    TokenKind kind;
+    const char *lexeme;
+} ExpectedToken;
+
+static void comprobar_tokens_matematicos(const char *input,
+                                         const ExpectedToken *expected,
+                                         size_t count) {
+    Lexer l;
+    lexer_init_matematico(&l, input);
+    for (size_t i = 0; i < count; i++) {
+        Token t = lexer_siguiente(&l);
+        assert(t.kind == expected[i].kind);
+        assert(t.lexeme && strcmp(t.lexeme, expected[i].lexeme) == 0);
+        token_free(&t);
+    }
+    Token eof = lexer_siguiente(&l);
+    assert(eof.kind == TOK_EOF && strcmp(eof.lexeme, "") == 0);
+    token_free(&eof);
+    lexer_destroy(&l);
+}
+
+#define CHECK_MATH(input, ...) do { \
+    const ExpectedToken expected[] = { __VA_ARGS__ }; \
+    comprobar_tokens_matematicos(input, expected, sizeof(expected) / sizeof(expected[0])); \
+} while (0)
+
+static void test_lexer_matematico(void) {
+    CHECK_MATH("sin(x)+cos(y)",
+        {TOK_SIN,"sin"}, {TOK_LPAR,"("}, {TOK_ID,"x"}, {TOK_RPAR,")"},
+        {TOK_PLUS,"+"}, {TOK_COS,"cos"}, {TOK_LPAR,"("}, {TOK_ID,"y"}, {TOK_RPAR,")"});
+    CHECK_MATH("sen(x)+tan(y)",
+        {TOK_SEN,"sen"}, {TOK_LPAR,"("}, {TOK_ID,"x"}, {TOK_RPAR,")"},
+        {TOK_PLUS,"+"}, {TOK_TAN,"tan"}, {TOK_LPAR,"("}, {TOK_ID,"y"}, {TOK_RPAR,")"});
+    CHECK_MATH("cos(x)^2+sin(x)^2",
+        {TOK_COS,"cos"}, {TOK_LPAR,"("}, {TOK_ID,"x"}, {TOK_RPAR,")"},
+        {TOK_EXP,"^"}, {TOK_NUMBER,"2"}, {TOK_PLUS,"+"}, {TOK_SIN,"sin"},
+        {TOK_LPAR,"("}, {TOK_ID,"x"}, {TOK_RPAR,")"}, {TOK_EXP,"^"}, {TOK_NUMBER,"2"});
+    CHECK_MATH("1--2", {TOK_NUMBER,"1"}, {TOK_MINUS,"-"}, {TOK_MINUS,"-"}, {TOK_NUMBER,"2"});
+    CHECK_MATH("3.14 + 42", {TOK_NUMBER,"3.14"}, {TOK_PLUS,"+"}, {TOK_NUMBER,"42"});
+    CHECK_MATH("variable1 + _valor", {TOK_ID,"variable1"}, {TOK_PLUS,"+"}, {TOK_ID,"_valor"});
+    CHECK_MATH("seno sinus sin1 Sin", {TOK_ID,"seno"}, {TOK_ID,"sinus"}, {TOK_ID,"sin1"}, {TOK_ID,"Sin"});
+    CHECK_MATH("2*3/4", {TOK_NUMBER,"2"}, {TOK_MUL,"*"}, {TOK_NUMBER,"3"}, {TOK_DIV,"/"}, {TOK_NUMBER,"4"});
+    CHECK_MATH("if main number true and", {TOK_ID,"if"}, {TOK_ID,"main"}, {TOK_ID,"number"},
+               {TOK_ID,"true"}, {TOK_ID,"and"});
+    CHECK_MATH("else end false or while do for func local print println ret string bool then",
+               {TOK_ID,"else"}, {TOK_ID,"end"}, {TOK_ID,"false"}, {TOK_ID,"or"},
+               {TOK_ID,"while"}, {TOK_ID,"do"}, {TOK_ID,"for"}, {TOK_ID,"func"},
+               {TOK_ID,"local"}, {TOK_ID,"print"}, {TOK_ID,"println"}, {TOK_ID,"ret"},
+               {TOK_ID,"string"}, {TOK_ID,"bool"}, {TOK_ID,"then"});
+    CHECK_MATH("5.", {TOK_ERROR,"número mal formado"});
+    CHECK_MATH("@", {TOK_ERROR,"carácter '@' no válido"});
+    CHECK_MATH("%", {TOK_ERROR,"carácter '%' no válido"});
+    CHECK_MATH(",", {TOK_ERROR,"carácter ',' no válido"});
+    CHECK_MATH("=", {TOK_ERROR,"carácter '=' no válido"});
+    CHECK_MATH("\"", {TOK_ERROR,"carácter '\"' no válido"});
+    CHECK_MATH(".5", {TOK_ERROR,"carácter '.' no válido"}, {TOK_NUMBER,"5"});
+
+    assert(strcmp(token_kind_to_str(TOK_SIN), "TOK-SIN") == 0);
+    assert(strcmp(token_kind_to_str(TOK_SEN), "TOK-SEN") == 0);
+    assert(strcmp(token_kind_to_str(TOK_COS), "TOK-COS") == 0);
+    assert(strcmp(token_kind_to_str(TOK_TAN), "TOK-TAN") == 0);
+
+    {
+        Lexer l;
+        lexer_init_matematico(&l, " \tsin\n  @");
+        Token sin = lexer_siguiente(&l);
+        Token error = lexer_siguiente(&l);
+        Token eof = lexer_siguiente(&l);
+        assert(sin.kind == TOK_SIN && sin.line == 1 && sin.col == 3);
+        assert(error.kind == TOK_ERROR && error.line == 2 && error.col == 3);
+        assert(l.has_error && l.error_line == 2 && l.error_col == 3);
+        assert(strcmp(l.error_msg, "carácter '@' no válido") == 0);
+        assert(eof.kind == TOK_EOF && eof.line == 2 && eof.col == 4);
+        token_free(&sin);
+        token_free(&error);
+        token_free(&eof);
+        lexer_destroy(&l);
+    }
+    /* El inicializador predeterminado no reserva funciones matemáticas. */
+    {
+        Lexer l;
+        lexer_init(&l, "sin sen cos tan -- comentario\nmain");
+        for (int i = 0; i < 4; i++) {
+            Token t = lexer_siguiente(&l);
+            assert(t.kind == TOK_ID);
+            token_free(&t);
+        }
+        Token main_token = lexer_siguiente(&l);
+        assert(main_token.kind == TOK_MAIN);
+        token_free(&main_token);
+        lexer_destroy(&l);
+    }
+    printf("OK test_lexer_matematico\n");
+}
+
+#undef CHECK_MATH
+
 static char *read_file_text(const char *path) {
     FILE *f = fopen(path, "rb");
     if (!f) return NULL;
@@ -531,6 +629,7 @@ static void test_afd_especificacion(void) {
 int main(void) {
     test_lexer_basicos();
     test_lexer_errores();
+    test_lexer_matematico();
     test_parser_ok();
     test_parser_invalidos();
     test_precedencia();

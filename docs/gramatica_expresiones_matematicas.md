@@ -26,7 +26,7 @@ De menor a mayor precedencia:
    entre paréntesis. `sin` y `sen` designan la misma función seno; los
    argumentos trigonométricos se interpretarán en radianes.
 
-## Contrato léxico para etapas posteriores
+## Contrato léxico
 
 - `NUMBER` representa un entero o decimal con dígitos antes y, si hay punto,
   después de este: `[0-9]+(\.[0-9]+)?`. Es la forma ya reconocida por Toy;
@@ -36,10 +36,10 @@ De menor a mayor precedencia:
   `sen`, `cos` y `tan` para las funciones; nombres como `seno` siguen siendo
   identificadores. Las palabras reservadas de Toy no se reservan aquí.
 - Los símbolos entre comillas son terminales distintos de `NUMBER` e `ID`.
-  En particular, el futuro léxico matemático debe clasificar los cuatro
+  En particular, el léxico matemático clasifica los cuatro
   nombres de función antes que `ID`. La verificación LL(1) depende de que
   estas clases no se solapen.
-- Se admiten espacios entre tokens. El futuro modo matemático no debe tratar
+- Se admiten espacios entre tokens. El modo matemático no trata
   `--` como comentario de Toy: `1--2` representa `1 - (-2)`.
 
 La gramática describe sintaxis; la validación de valores numéricos, la
@@ -58,5 +58,7 @@ make toy_ll1
 ./toy_ll1 gramatica/expresiones_matematicas.txt --sets
 ```
 
-La salida debe indicar `ninguno` para conflictos. La comprobación presupone
-el contrato léxico descrito arriba; el lexer de Toy aún no lo implementa.
+La salida debe indicar `ninguno` para conflictos. El modo matemático se activa
+con `lexer_init_matematico`; `lexer_init` conserva el comportamiento de Toy.
+Los nombres de función se emiten como `TOK_SIN`, `TOK_SEN`, `TOK_COS` y
+`TOK_TAN`, y los identificadores ordinarios como `TOK_ID`.

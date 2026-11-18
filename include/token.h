@@ -51,7 +51,13 @@ typedef enum {
     /* Literales e identificadores */
     TOK_ID,
     TOK_NUMBER,
-    TOK_STRING
+    TOK_STRING,
+
+    /* Funciones reservadas exclusivamente en el modo matemático */
+    TOK_SIN,
+    TOK_SEN,
+    TOK_COS,
+    TOK_TAN
 } TokenKind;
 
 typedef struct {
