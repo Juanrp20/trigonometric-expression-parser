@@ -61,7 +61,7 @@ La precedencia aumenta desde suma y resta, multiplicación y división, negació
 \section{Verificación LL(1)}
 El verificador heredado expande opciones y repeticiones a producciones auxiliares, calcula anulabilidad, PRIMERO y SIGUIENTE por punto fijo y compara los conjuntos de selección de las alternativas. La orden \verb|./toy_ll1 gramatica/expresiones_matematicas.txt --sets| produjo \texttt{ninguno}, es decir, cero conflictos detectados. Se presupone la clasificación léxica disjunta de las funciones e \texttt{ID}.
 
-El programa devuelve 0 sin conflictos, 1 ante conflictos o errores de lectura y 2 para una gramática vacía o mal formada. La gramática original de Toy sigue presentando dos conflictos y ahora devuelve código 1.
+El programa devuelve 0 sin conflictos, 1 ante conflictos o errores de lectura, 2 para una gramática vacía o mal formada y 3 ante un fallo de reserva o tamaño no representable. La gramática original de Toy sigue presentando dos conflictos y devuelve código 1. Los fallos de memoria interrumpen el análisis y liberan las estructuras parciales.
 
 Los conjuntos principales obtenidos son los siguientes. Se escribe \texttt{\$} para fin de entrada y F para \{sin, sen, cos, tan\}.
 \begin{center}
@@ -120,7 +120,7 @@ Se ejecutaron \texttt{make clean}, \texttt{make all} y \texttt{ASAN\_OPTIONS=det
 \section{Conclusiones}
 Se obtuvo un reconocedor LL(1), un AST y un evaluador numérico integrados en una consola. La separación de fases permitió reutilizar componentes de Toy, identificar errores y verificar la precedencia mediante la estructura del árbol. Se conservaron las regresiones existentes.
 
-Las limitaciones incluyen una expresión por ejecución, multiplicación explícita, literales de expresión sin notación científica y los límites explícitos de profundidad. El lexer y la arena controlan fallos de reserva en sus rutas principales, pero el verificador LL(1) heredado aún no maneja de forma completa el agotamiento de memoria. Los errores \texttt{ERANGE} se rechazan también en subdesbordamiento; no se aplican tolerancias arbitrarias a singularidades de la tangente.
+Las limitaciones incluyen una expresión por ejecución, multiplicación explícita, literales de expresión sin notación científica y los límites explícitos de profundidad. El verificador LL(1) se probó mediante inyección de fallos en sus reservas; los demás componentes heredados no se han sometido exhaustivamente a dicha inyección. Los errores \texttt{ERANGE} se rechazan también en subdesbordamiento; no se aplican tolerancias arbitrarias a singularidades de la tangente.
 \section{Referencias}
 \begin{enumerate}
 \item Enunciado suministrado: \texttt{docs/compiladores\_trabajo\_pr\_ctico\_3.md}.

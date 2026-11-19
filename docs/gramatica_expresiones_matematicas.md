@@ -62,8 +62,18 @@ Los nombres de función se emiten como `TOK_SIN`, `TOK_SEN`, `TOK_COS` y
 `TOK_TAN`, y los identificadores ordinarios como `TOK_ID`.
 
 El verificador devuelve 0 sin conflictos, 1 si encuentra conflictos o no puede
-leer el archivo, y 2 si la gramática está vacía o mal formada. Rechaza grupos
-sin cerrar, alternativas vacías y no terminales sin definición.
+leer el archivo, 2 si la gramática está vacía o mal formada y 3 si falla una
+reserva de memoria o se excede su tamaño representable. Rechaza grupos sin
+cerrar, alternativas vacías y no terminales sin definición. Un fallo de memoria
+interrumpe el cálculo y no produce la salida `ninguno`.
+
+En la API C, `ll1_grammar_parse` devuelve 1 por éxito, 0 por sintaxis inválida
+y -1 por memoria; `ll1_grammar_calculate` y `ll1_grammar_find_conflicts`
+devuelven 1 por éxito y 0 por error. Tras un error de cálculo, los conjuntos
+parciales no son válidos y se debe liberar la gramática. `set_add` y
+`set_union` distinguen error (-1), ausencia de cambios (0) e inserción (1);
+`set_intersect` usa el mismo contrato e inicializa el conjunto de salida, que
+debe liberarse incluso si falla.
 
 ## Reconocedor descendente
 

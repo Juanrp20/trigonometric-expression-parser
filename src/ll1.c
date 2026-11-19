@@ -3,10 +3,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
+#include <limits.h>
 
 static char *my_strdup(const char *s) {
     if (!s) return NULL;
     size_t len = strlen(s);
+    if (len == SIZE_MAX) return NULL;
     char *p = (char *)malloc(len + 1);
     if (p) memcpy(p, s, len + 1);
     return p;
@@ -44,15 +47,28 @@ static void tok_list_init(EbnfTokenList *l) {
     l->capacity = 0;
 }
 
-static void tok_list_push(EbnfTokenList *l, EbnfTokKind kind, const char *val) {
+/* Solo actualiza la capacidad después de reservar correctamente. */
+static void *grow(void *ptr, size_t *capacity, size_t width, size_t initial) {
+    if (*capacity > SIZE_MAX / 2) return NULL;
+    size_t next = *capacity ? *capacity * 2 : initial;
+    if (next > SIZE_MAX / width) return NULL;
+    void *new_ptr = realloc(ptr, next * width);
+    if (!new_ptr) return NULL;
+    *capacity = next;
+    return new_ptr;
+}
+
+static int tok_list_push(EbnfTokenList *l, EbnfTokKind kind, const char *val) {
     if (l->count >= l->capacity) {
-        size_t new_cap = l->capacity == 0 ? 32 : l->capacity * 2;
-        l->items = (EbnfToken *)realloc(l->items, new_cap * sizeof(EbnfToken));
-        l->capacity = new_cap;
+        EbnfToken *items = grow(l->items, &l->capacity, sizeof(*items), 32);
+        if (!items) return 0;
+        l->items = items;
     }
+    char *copy = my_strdup(val);
+    if (!copy) return 0;
     l->items[l->count].kind = kind;
-    l->items[l->count].val = my_strdup(val);
-    l->count++;
+    l->items[l->count++].val = copy;
+    return 1;
 }
 
 static void tok_list_free(EbnfTokenList *l) {
@@ -72,22 +88,16 @@ static void seq_init(SymbolSeq *s) {
     s->capacity = 0;
 }
 
-static void seq_push(SymbolSeq *s, const char *sym) {
+static int seq_push(SymbolSeq *s, const char *sym) {
     if (s->count >= s->capacity) {
-        size_t new_cap = s->capacity == 0 ? 4 : s->capacity * 2;
-        s->symbols = (char **)realloc(s->symbols, new_cap * sizeof(char *));
-        s->capacity = new_cap;
+        char **symbols = grow(s->symbols, &s->capacity, sizeof(*symbols), 4);
+        if (!symbols) return 0;
+        s->symbols = symbols;
     }
-    s->symbols[s->count++] = my_strdup(sym);
-}
-
-static SymbolSeq seq_clone(const SymbolSeq *s) {
-    SymbolSeq copy;
-    seq_init(&copy);
-    for (size_t i = 0; i < s->count; i++) {
-        seq_push(&copy, s->symbols[i]);
-    }
-    return copy;
+    char *copy = my_strdup(sym);
+    if (!copy) return 0;
+    s->symbols[s->count++] = copy;
+    return 1;
 }
 
 static void seq_free(SymbolSeq *s) {
@@ -107,13 +117,15 @@ static void alts_init(AltList *a) {
     a->capacity = 0;
 }
 
-static void alts_push(AltList *a, SymbolSeq seq) {
+/* La secuencia pasa a ser propiedad de la lista solo en caso de éxito. */
+static int alts_push(AltList *a, SymbolSeq seq) {
     if (a->count >= a->capacity) {
-        size_t new_cap = a->capacity == 0 ? 4 : a->capacity * 2;
-        a->items = (SymbolSeq *)realloc(a->items, new_cap * sizeof(SymbolSeq));
-        a->capacity = new_cap;
+        SymbolSeq *items = grow(a->items, &a->capacity, sizeof(*items), 4);
+        if (!items) return 0;
+        a->items = items;
     }
     a->items[a->count++] = seq;
+    return 1;
 }
 
 static void alts_free(AltList *a) {
@@ -160,6 +172,7 @@ static char *make_aux_name(AuxMap *map, const char *orig_lhs) {
     int found = 0;
     for (size_t i = 0; i < map->count; i++) {
         if (strcmp(map->items[i].base, stripped) == 0) {
+            if (map->items[i].counter == INT_MAX) return NULL;
             map->items[i].counter++;
             count = map->items[i].counter;
             found = 1;
@@ -168,11 +181,12 @@ static char *make_aux_name(AuxMap *map, const char *orig_lhs) {
     }
     if (!found) {
         if (map->count >= map->capacity) {
-            size_t new_cap = map->capacity == 0 ? 8 : map->capacity * 2;
-            map->items = (AuxCounter *)realloc(map->items, new_cap * sizeof(AuxCounter));
-            map->capacity = new_cap;
+            AuxCounter *items = grow(map->items, &map->capacity, sizeof(*items), 8);
+            if (!items) return NULL;
+            map->items = items;
         }
         map->items[map->count].base = my_strdup(stripped);
+        if (!map->items[map->count].base) return NULL;
         map->items[map->count].counter = 1;
         map->count++;
     }
@@ -223,17 +237,17 @@ static int tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
                 continue;
             }
             if (line[i] == '-' && line[i + 1] == '>') {
-                tok_list_push(tokens, TOK_EBNF_ARROW, "->");
+                if (!tok_list_push(tokens, TOK_EBNF_ARROW, "->")) return -1;
                 i += 2;
                 continue;
             }
-            if (c == '{') { tok_list_push(tokens, TOK_EBNF_LBRACE, "{"); i++; continue; }
-            if (c == '}') { tok_list_push(tokens, TOK_EBNF_RBRACE, "}"); i++; continue; }
-            if (c == '[') { tok_list_push(tokens, TOK_EBNF_LBRACKET, "["); i++; continue; }
-            if (c == ']') { tok_list_push(tokens, TOK_EBNF_RBRACKET, "]"); i++; continue; }
-            if (c == '(') { tok_list_push(tokens, TOK_EBNF_LPAR, "("); i++; continue; }
-            if (c == ')') { tok_list_push(tokens, TOK_EBNF_RPAR, ")"); i++; continue; }
-            if (c == '|') { tok_list_push(tokens, TOK_EBNF_PIPE, "|"); i++; continue; }
+            if (c == '{') { if (!tok_list_push(tokens, TOK_EBNF_LBRACE, "{")) return -1; i++; continue; }
+            if (c == '}') { if (!tok_list_push(tokens, TOK_EBNF_RBRACE, "}")) return -1; i++; continue; }
+            if (c == '[') { if (!tok_list_push(tokens, TOK_EBNF_LBRACKET, "[")) return -1; i++; continue; }
+            if (c == ']') { if (!tok_list_push(tokens, TOK_EBNF_RBRACKET, "]")) return -1; i++; continue; }
+            if (c == '(') { if (!tok_list_push(tokens, TOK_EBNF_LPAR, "(")) return -1; i++; continue; }
+            if (c == ')') { if (!tok_list_push(tokens, TOK_EBNF_RPAR, ")")) return -1; i++; continue; }
+            if (c == '|') { if (!tok_list_push(tokens, TOK_EBNF_PIPE, "|")) return -1; i++; continue; }
 
             if (c == '<') {
                 size_t j = i + 1;
@@ -245,7 +259,7 @@ static int tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
                 if (tok_l >= sizeof(buf)) tok_l = sizeof(buf) - 1;
                 memcpy(buf, &line[i], tok_l);
                 buf[tok_l] = '\0';
-                tok_list_push(tokens, TOK_EBNF_NT, buf);
+                if (!tok_list_push(tokens, TOK_EBNF_NT, buf)) return -1;
                 i = end_j;
                 continue;
             }
@@ -259,7 +273,7 @@ static int tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
                 if (tok_l >= sizeof(buf)) tok_l = sizeof(buf) - 1;
                 memcpy(buf, &line[i], tok_l);
                 buf[tok_l] = '\0';
-                tok_list_push(tokens, TOK_EBNF_T, buf);
+                if (!tok_list_push(tokens, TOK_EBNF_T, buf)) return -1;
                 i = end_j;
                 continue;
             }
@@ -275,7 +289,7 @@ static int tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
                 memcpy(&buf[1], &line[i + 1], inner_l);
                 buf[1 + inner_l] = '"';
                 buf[2 + inner_l] = '\0';
-                tok_list_push(tokens, TOK_EBNF_T, buf);
+                if (!tok_list_push(tokens, TOK_EBNF_T, buf)) return -1;
                 i = end_j;
                 continue;
             }
@@ -287,7 +301,7 @@ static int tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
                 if (tok_l >= sizeof(buf)) tok_l = sizeof(buf) - 1;
                 memcpy(buf, &line[i], tok_l);
                 buf[tok_l] = '\0';
-                tok_list_push(tokens, TOK_EBNF_ID, buf);
+                if (!tok_list_push(tokens, TOK_EBNF_ID, buf)) return -1;
                 i = j;
                 continue;
             }
@@ -358,216 +372,178 @@ typedef struct {
     size_t aux_capacity;
 } RhsParser;
 
-static void rhs_add_aux_rule(RhsParser *rp, const char *lhs, AltList alts) {
+static int rhs_add_aux_rule(RhsParser *rp, const char *lhs, AltList alts) {
     if (rp->aux_count >= rp->aux_capacity) {
-        size_t new_cap = rp->aux_capacity == 0 ? 8 : rp->aux_capacity * 2;
-        rp->aux_rules = (Rule *)realloc(rp->aux_rules, new_cap * sizeof(Rule));
-        rp->aux_capacity = new_cap;
+        Rule *rules = grow(rp->aux_rules, &rp->aux_capacity, sizeof(*rules), 8);
+        if (!rules) return 0;
+        rp->aux_rules = rules;
     }
-    rp->aux_rules[rp->aux_count].lhs = my_strdup(lhs);
-    rp->aux_rules[rp->aux_count].alts = alts;
-    set_init(&rp->aux_rules[rp->aux_count].first);
-    set_init(&rp->aux_rules[rp->aux_count].follow);
-    rp->aux_count++;
+    char *nombre = my_strdup(lhs);
+    if (!nombre) return 0;
+    Rule *r = &rp->aux_rules[rp->aux_count++];
+    r->lhs = nombre;
+    r->alts = alts;
+    set_init(&r->first);
+    set_init(&r->follow);
+    return 1;
 }
 
-static AltList parse_rhs_expr(RhsParser *rp);
+static int parse_rhs_expr(RhsParser *rp, AltList *out);
 
 static char *parse_rhs_factor(RhsParser *rp) {
     if (rp->pos >= rp->count) return NULL;
-    EbnfToken t = rp->tokens[rp->pos];
-
-    if (t.kind == TOK_EBNF_LBRACE) {
-        rp->pos++; /* eat { */
-        AltList inner = parse_rhs_expr(rp);
-        if (rp->pos < rp->count && rp->tokens[rp->pos].kind == TOK_EBNF_RBRACE) {
-            rp->pos++; /* eat } */
-        }
-        char *aux_nt = make_aux_name(rp->aux_map, rp->orig_lhs);
-        AltList aux_alts;
-        alts_init(&aux_alts);
-        for (size_t i = 0; i < inner.count; i++) {
-            SymbolSeq s = seq_clone(&inner.items[i]);
-            seq_push(&s, aux_nt);
-            alts_push(&aux_alts, s);
-        }
-        SymbolSeq eps;
-        seq_init(&eps);
-        alts_push(&aux_alts, eps);
-
-        rhs_add_aux_rule(rp, aux_nt, aux_alts);
-        alts_free(&inner);
-        return aux_nt;
-    } else if (t.kind == TOK_EBNF_LBRACKET) {
-        rp->pos++; /* eat [ */
-        AltList inner = parse_rhs_expr(rp);
-        if (rp->pos < rp->count && rp->tokens[rp->pos].kind == TOK_EBNF_RBRACKET) {
-            rp->pos++; /* eat ] */
-        }
-        char *aux_nt = make_aux_name(rp->aux_map, rp->orig_lhs);
-        AltList aux_alts;
-        alts_init(&aux_alts);
-        for (size_t i = 0; i < inner.count; i++) {
-            SymbolSeq s = seq_clone(&inner.items[i]);
-            alts_push(&aux_alts, s);
-        }
-        SymbolSeq eps;
-        seq_init(&eps);
-        alts_push(&aux_alts, eps);
-
-        rhs_add_aux_rule(rp, aux_nt, aux_alts);
-        alts_free(&inner);
-        return aux_nt;
-    } else if (t.kind == TOK_EBNF_LPAR) {
-        rp->pos++; /* eat ( */
-        AltList inner = parse_rhs_expr(rp);
-        if (rp->pos < rp->count && rp->tokens[rp->pos].kind == TOK_EBNF_RPAR) {
-            rp->pos++; /* eat ) */
-        }
-        char *aux_nt = make_aux_name(rp->aux_map, rp->orig_lhs);
-        AltList aux_alts;
-        alts_init(&aux_alts);
-        for (size_t i = 0; i < inner.count; i++) {
-            SymbolSeq s = seq_clone(&inner.items[i]);
-            alts_push(&aux_alts, s);
-        }
-        rhs_add_aux_rule(rp, aux_nt, aux_alts);
-        alts_free(&inner);
-        return aux_nt;
-    } else if (t.kind == TOK_EBNF_NT || t.kind == TOK_EBNF_T || t.kind == TOK_EBNF_ID) {
-        rp->pos++;
+    EbnfToken t = rp->tokens[rp->pos++];
+    if (t.kind == TOK_EBNF_NT || t.kind == TOK_EBNF_T || t.kind == TOK_EBNF_ID)
         return my_strdup(t.val);
-    } else {
-        rp->pos++;
+    if (t.kind != TOK_EBNF_LBRACE && t.kind != TOK_EBNF_LBRACKET && t.kind != TOK_EBNF_LPAR)
         return NULL;
+    AltList inner, aux;
+    alts_init(&inner);
+    alts_init(&aux);
+    char *nombre = NULL;
+    if (!parse_rhs_expr(rp, &inner)) goto error;
+    rp->pos++; /* El cierre ya fue validado antes del análisis. */
+    nombre = make_aux_name(rp->aux_map, rp->orig_lhs);
+    if (!nombre) goto error;
+    for (size_t i = 0; i < inner.count; i++) {
+        SymbolSeq copia;
+        seq_init(&copia);
+        for (size_t j = 0; j < inner.items[i].count; j++) {
+            if (!seq_push(&copia, inner.items[i].symbols[j])) { seq_free(&copia); goto error; }
+        }
+        if (t.kind == TOK_EBNF_LBRACE && !seq_push(&copia, nombre)) { seq_free(&copia); goto error; }
+        if (!alts_push(&aux, copia)) { seq_free(&copia); goto error; }
     }
+    if (t.kind != TOK_EBNF_LPAR) {
+        SymbolSeq eps;
+        seq_init(&eps);
+        if (!alts_push(&aux, eps)) goto error;
+    }
+    if (!rhs_add_aux_rule(rp, nombre, aux)) goto error;
+    alts_free(&inner);
+    return nombre;
+error:
+    alts_free(&inner);
+    alts_free(&aux);
+    free(nombre);
+    return NULL;
 }
 
-static SymbolSeq parse_rhs_seq(RhsParser *rp) {
-    SymbolSeq seq;
-    seq_init(&seq);
+static int parse_rhs_seq(RhsParser *rp, SymbolSeq *seq) {
+    seq_init(seq);
     while (rp->pos < rp->count) {
         EbnfTokKind k = rp->tokens[rp->pos].kind;
         if (k == TOK_EBNF_PIPE || k == TOK_EBNF_RBRACE ||
-            k == TOK_EBNF_RBRACKET || k == TOK_EBNF_RPAR) {
-            break;
-        }
+            k == TOK_EBNF_RBRACKET || k == TOK_EBNF_RPAR) break;
         char *f = parse_rhs_factor(rp);
-        if (f) {
-            seq_push(&seq, f);
-            free(f);
-        }
+        if (!f) { seq_free(seq); return 0; }
+        int ok = seq_push(seq, f);
+        free(f);
+        if (!ok) { seq_free(seq); return 0; }
     }
-    return seq;
+    return 1;
 }
 
-static AltList parse_rhs_expr(RhsParser *rp) {
-    AltList alts;
-    alts_init(&alts);
-    alts_push(&alts, parse_rhs_seq(rp));
-
-    while (rp->pos < rp->count && rp->tokens[rp->pos].kind == TOK_EBNF_PIPE) {
-        rp->pos++; /* eat | */
-        alts_push(&alts, parse_rhs_seq(rp));
+static int parse_rhs_expr(RhsParser *rp, AltList *out) {
+    alts_init(out);
+    for (;;) {
+        SymbolSeq seq;
+        if (!parse_rhs_seq(rp, &seq)) { alts_free(out); return 0; }
+        if (!alts_push(out, seq)) { seq_free(&seq); alts_free(out); return 0; }
+        if (rp->pos >= rp->count || rp->tokens[rp->pos].kind != TOK_EBNF_PIPE) return 1;
+        rp->pos++;
     }
-    return alts;
 }
 
 void ll1_grammar_init(LL1Grammar *g) {
     g->rules = NULL;
     g->rule_count = 0;
     g->rule_capacity = 0;
+    g->calculo_valido = 0;
     set_init(&g->non_terminals);
     set_init(&g->nullable);
 }
 
+static void rule_free(Rule *r) {
+    free(r->lhs);
+    r->lhs = NULL;
+    alts_free(&r->alts);
+    set_free(&r->first);
+    set_free(&r->follow);
+}
+
 int ll1_grammar_parse(LL1Grammar *g, const char *ebnf_text) {
-    ll1_grammar_init(g);
     EbnfTokenList tokens;
-    if (!ebnf_text) return 0;
-    if (!tokenize_ebnf(ebnf_text, &tokens) || !validar_tokens(&tokens)) {
-        tok_list_free(&tokens);
-        return 0;
-    }
-
-    /* Encontrar inicios de regla */
-    size_t *rule_starts = NULL;
-    size_t start_count = 0;
-    for (size_t i = 0; i + 1 < tokens.count; i++) {
-        if (tokens.items[i].kind == TOK_EBNF_NT && tokens.items[i + 1].kind == TOK_EBNF_ARROW) {
-            rule_starts = (size_t *)realloc(rule_starts, (start_count + 1) * sizeof(size_t));
-            rule_starts[start_count++] = i;
-        }
-    }
-
     AuxMap aux_map = {NULL, 0, 0};
-    RhsParser rp;
+    RhsParser rp = {NULL, 0, 0, NULL, &aux_map, NULL, 0, 0};
+    size_t *starts = NULL, start_count = 0;
+    int result = -1;
+    ll1_grammar_init(g);
+    tok_list_init(&tokens);
+    if (!ebnf_text) return 0;
+    int lex = tokenize_ebnf(ebnf_text, &tokens);
+    if (lex < 0) goto cleanup;
+    if (!lex || !validar_tokens(&tokens)) { result = 0; goto cleanup; }
+    if (tokens.count > SIZE_MAX / sizeof(*starts)) goto cleanup;
+    starts = malloc(tokens.count * sizeof(*starts));
+    if (!starts) goto cleanup;
+    for (size_t i = 0; i + 1 < tokens.count; i++)
+        if (tokens.items[i].kind == TOK_EBNF_NT && tokens.items[i + 1].kind == TOK_EBNF_ARROW)
+            starts[start_count++] = i;
     rp.tokens = tokens.items;
-    rp.count = tokens.count;
-    rp.pos = 0;
-    rp.orig_lhs = NULL;
-    rp.aux_map = &aux_map;
-    rp.aux_rules = NULL;
-    rp.aux_count = 0;
-    rp.aux_capacity = 0;
-
     for (size_t idx = 0; idx < start_count; idx++) {
-        size_t start_i = rule_starts[idx];
-        size_t end_i = (idx + 1 < start_count) ? rule_starts[idx + 1] : tokens.count;
-        const char *lhs = tokens.items[start_i].val;
-
+        size_t start = starts[idx];
+        const char *lhs = tokens.items[start].val;
         rp.orig_lhs = lhs;
-        rp.pos = start_i + 2;
-        rp.count = end_i;
-
-        AltList alts = parse_rhs_expr(&rp);
-
-        /* Buscar si ya existe la regla para combinar alternativas */
+        rp.pos = start + 2;
+        rp.count = idx + 1 < start_count ? starts[idx + 1] : tokens.count;
+        AltList alts;
+        if (!parse_rhs_expr(&rp, &alts)) goto cleanup;
         Rule *existing = NULL;
-        for (size_t r = 0; r < g->rule_count; r++) {
-            if (strcmp(g->rules[r].lhs, lhs) == 0) {
-                existing = &g->rules[r];
-                break;
-            }
-        }
+        for (size_t r = 0; r < g->rule_count; r++)
+            if (strcmp(g->rules[r].lhs, lhs) == 0) { existing = &g->rules[r]; break; }
         if (existing) {
             for (size_t a = 0; a < alts.count; a++) {
-                alts_push(&existing->alts, alts.items[a]);
+                if (!alts_push(&existing->alts, alts.items[a])) { alts_free(&alts); goto cleanup; }
+                seq_init(&alts.items[a]);
             }
-            free(alts.items);
+            alts_free(&alts);
         } else {
             if (g->rule_count >= g->rule_capacity) {
-                size_t new_cap = g->rule_capacity == 0 ? 16 : g->rule_capacity * 2;
-                g->rules = (Rule *)realloc(g->rules, new_cap * sizeof(Rule));
-                g->rule_capacity = new_cap;
+                Rule *rules = grow(g->rules, &g->rule_capacity, sizeof(*rules), 16);
+                if (!rules) { alts_free(&alts); goto cleanup; }
+                g->rules = rules;
             }
-            g->rules[g->rule_count].lhs = my_strdup(lhs);
-            g->rules[g->rule_count].alts = alts;
-            set_init(&g->rules[g->rule_count].first);
-            set_init(&g->rules[g->rule_count].follow);
-            g->rule_count++;
+            char *name = my_strdup(lhs);
+            if (!name) { alts_free(&alts); goto cleanup; }
+            Rule *r = &g->rules[g->rule_count++];
+            r->lhs = name; r->alts = alts;
+            set_init(&r->first); set_init(&r->follow);
         }
     }
-
-    /* Añadir reglas auxiliares generadas */
     for (size_t i = 0; i < rp.aux_count; i++) {
         if (g->rule_count >= g->rule_capacity) {
-            size_t new_cap = g->rule_capacity == 0 ? 16 : g->rule_capacity * 2;
-            g->rules = (Rule *)realloc(g->rules, new_cap * sizeof(Rule));
-            g->rule_capacity = new_cap;
+            Rule *rules = grow(g->rules, &g->rule_capacity, sizeof(*rules), 16);
+            if (!rules) goto cleanup;
+            g->rules = rules;
         }
         g->rules[g->rule_count++] = rp.aux_rules[i];
+        rp.aux_rules[i].lhs = NULL;
+        alts_init(&rp.aux_rules[i].alts);
+        set_init(&rp.aux_rules[i].first);
+        set_init(&rp.aux_rules[i].follow);
     }
-    if (rp.aux_rules) free(rp.aux_rules);
-
-    for (size_t i = 0; i < g->rule_count; i++) {
-        set_add(&g->non_terminals, g->rules[i].lhs);
-    }
-
+    for (size_t i = 0; i < g->rule_count; i++)
+        if (set_add(&g->non_terminals, g->rules[i].lhs) == SET_ERROR) goto cleanup;
+    result = 1;
+cleanup:
+    for (size_t i = 0; i < rp.aux_count; i++) rule_free(&rp.aux_rules[i]);
+    free(rp.aux_rules);
     aux_map_free(&aux_map);
-    if (rule_starts) free(rule_starts);
+    free(starts);
     tok_list_free(&tokens);
-    return 1;
+    if (result != 1) ll1_grammar_free(g);
+    return result;
 }
 
 static Rule *find_rule(LL1Grammar *g, const char *lhs) {
@@ -588,29 +564,28 @@ static int is_sequence_nullable(LL1Grammar *g, const char *const *symbols, size_
     return 1;
 }
 
-static StringSet first_of_sequence(LL1Grammar *g, const char *const *symbols, size_t count) {
-    StringSet res;
-    set_init(&res);
+static int first_of_sequence(LL1Grammar *g, const char *const *symbols, size_t count, StringSet *res) {
+    set_init(res);
     for (size_t i = 0; i < count; i++) {
         const char *sym = symbols[i];
         if (set_contains(&g->non_terminals, sym)) {
             Rule *r = find_rule(g, sym);
-            if (r) {
-                set_union(&res, &r->first);
-            }
-            if (!set_contains(&g->nullable, sym)) {
-                break;
-            }
+            if (r && set_union(res, &r->first) == SET_ERROR) goto error;
+            if (!set_contains(&g->nullable, sym)) break;
         } else {
-            set_add(&res, sym);
+            if (set_add(res, sym) == SET_ERROR) goto error;
             break;
         }
     }
-    return res;
+    return 1;
+error:
+    set_free(res);
+    return 0;
 }
 
-void ll1_grammar_calculate(LL1Grammar *g) {
-    /* 1. NULLABLE */
+int ll1_grammar_calculate(LL1Grammar *g) {
+    g->calculo_valido = 0;
+    if (!g->rule_count) return 0;
     int changed = 1;
     while (changed) {
         changed = 0;
@@ -620,15 +595,14 @@ void ll1_grammar_calculate(LL1Grammar *g) {
             for (size_t a = 0; a < r->alts.count; a++) {
                 SymbolSeq *seq = &r->alts.items[a];
                 if (is_sequence_nullable(g, (const char *const *)seq->symbols, seq->count)) {
-                    set_add(&g->nullable, r->lhs);
-                    changed = 1;
+                    int n = set_add(&g->nullable, r->lhs);
+                    if (n == SET_ERROR) return 0;
+                    changed |= n;
                     break;
                 }
             }
         }
     }
-
-    /* 2. FIRST */
     changed = 1;
     while (changed) {
         changed = 0;
@@ -636,20 +610,16 @@ void ll1_grammar_calculate(LL1Grammar *g) {
             Rule *r = &g->rules[i];
             for (size_t a = 0; a < r->alts.count; a++) {
                 SymbolSeq *seq = &r->alts.items[a];
-                StringSet f = first_of_sequence(g, (const char *const *)seq->symbols, seq->count);
-                if (!set_is_subset(&f, &r->first)) {
-                    set_union(&r->first, &f);
-                    changed = 1;
-                }
-                set_free(&f);
+                StringSet first;
+                if (!first_of_sequence(g, (const char *const *)seq->symbols, seq->count, &first)) return 0;
+                int n = set_union(&r->first, &first);
+                set_free(&first);
+                if (n == SET_ERROR) return 0;
+                changed |= n;
             }
         }
     }
-
-    /* 3. FOLLOW */
-    if (g->rule_count > 0) {
-        set_add(&g->rules[0].follow, "$");
-    }
+    if (g->rule_count && set_add(&g->rules[0].follow, "$") == SET_ERROR) return 0;
     changed = 1;
     while (changed) {
         changed = 0;
@@ -659,31 +629,28 @@ void ll1_grammar_calculate(LL1Grammar *g) {
                 SymbolSeq *seq = &r->alts.items[a];
                 for (size_t k = 0; k < seq->count; k++) {
                     const char *sym = seq->symbols[k];
-                    if (set_contains(&g->non_terminals, sym)) {
-                        Rule *sym_rule = find_rule(g, sym);
-                        if (sym_rule) {
-                            const char *const *beta = (const char *const *)&seq->symbols[k + 1];
-                            size_t beta_count = seq->count - (k + 1);
-
-                            StringSet f_beta = first_of_sequence(g, beta, beta_count);
-                            if (!set_is_subset(&f_beta, &sym_rule->follow)) {
-                                set_union(&sym_rule->follow, &f_beta);
-                                changed = 1;
-                            }
-                            set_free(&f_beta);
-
-                            if (is_sequence_nullable(g, beta, beta_count)) {
-                                if (!set_is_subset(&r->follow, &sym_rule->follow)) {
-                                    set_union(&sym_rule->follow, &r->follow);
-                                    changed = 1;
-                                }
-                            }
-                        }
+                    if (!set_contains(&g->non_terminals, sym)) continue;
+                    Rule *target = find_rule(g, sym);
+                    if (!target) continue;
+                    const char *const *beta = (const char *const *)&seq->symbols[k + 1];
+                    size_t beta_count = seq->count - (k + 1);
+                    StringSet first;
+                    if (!first_of_sequence(g, beta, beta_count, &first)) return 0;
+                    int n = set_union(&target->follow, &first);
+                    set_free(&first);
+                    if (n == SET_ERROR) return 0;
+                    changed |= n;
+                    if (is_sequence_nullable(g, beta, beta_count)) {
+                        n = set_union(&target->follow, &r->follow);
+                        if (n == SET_ERROR) return 0;
+                        changed |= n;
                     }
                 }
             }
         }
     }
+    g->calculo_valido = 1;
+    return 1;
 }
 
 void ll1_conflicts_init(LL1ConflictList *list) {
@@ -704,63 +671,66 @@ void ll1_conflicts_free(LL1ConflictList *list) {
     list->capacity = 0;
 }
 
-void ll1_grammar_find_conflicts(LL1Grammar *g, LL1ConflictList *confs) {
+int ll1_grammar_find_conflicts(LL1Grammar *g, LL1ConflictList *confs) {
     ll1_conflicts_init(confs);
-
+    if (!g->calculo_valido) return 0;
     for (size_t r = 0; r < g->rule_count; r++) {
         Rule *rule = &g->rules[r];
-        size_t n_alts = rule->alts.count;
-        if (n_alts < 2) continue;
-
-        StringSet *sel_sets = (StringSet *)malloc(n_alts * sizeof(StringSet));
-        for (size_t a = 0; a < n_alts; a++) {
-            SymbolSeq *seq = &rule->alts.items[a];
-            sel_sets[a] = first_of_sequence(g, (const char *const *)seq->symbols, seq->count);
-            if (is_sequence_nullable(g, (const char *const *)seq->symbols, seq->count)) {
-                set_union(&sel_sets[a], &rule->follow);
+        size_t count = rule->alts.count;
+        if (count < 2) continue;
+        if (count > SIZE_MAX / sizeof(StringSet)) goto error;
+        StringSet *sets = malloc(count * sizeof(*sets));
+        if (!sets) goto error;
+        size_t initialized = 0;
+        for (; initialized < count; initialized++) {
+            SymbolSeq *seq = &rule->alts.items[initialized];
+            if (!first_of_sequence(g, (const char *const *)seq->symbols, seq->count, &sets[initialized])) goto sets_error;
+            if (is_sequence_nullable(g, (const char *const *)seq->symbols, seq->count) &&
+                set_union(&sets[initialized], &rule->follow) == SET_ERROR) {
+                set_free(&sets[initialized]);
+                goto sets_error;
             }
         }
-
-        for (size_t i = 0; i < n_alts; i++) {
-            for (size_t j = i + 1; j < n_alts; j++) {
+        for (size_t i = 0; i < count; i++) {
+            for (size_t j = i + 1; j < count; j++) {
                 StringSet inter;
-                set_intersect(&inter, &sel_sets[i], &sel_sets[j]);
-                if (inter.count > 0) {
-                    if (confs->count >= confs->capacity) {
-                        size_t new_cap = confs->capacity == 0 ? 4 : confs->capacity * 2;
-                        confs->items = (LL1Conflict *)realloc(confs->items, new_cap * sizeof(LL1Conflict));
-                        confs->capacity = new_cap;
-                    }
-                    confs->items[confs->count].non_terminal = my_strdup(rule->lhs);
-                    confs->items[confs->count].alt1 = i;
-                    confs->items[confs->count].alt2 = j;
-                    confs->items[confs->count].intersection = inter;
-                    confs->count++;
-                } else {
-                    set_free(&inter);
+                if (set_intersect(&inter, &sets[i], &sets[j]) == SET_ERROR) { set_free(&inter); goto sets_error; }
+                if (!inter.count) { set_free(&inter); continue; }
+                if (confs->count >= confs->capacity) {
+                    LL1Conflict *items = grow(confs->items, &confs->capacity, sizeof(*items), 4);
+                    if (!items) { set_free(&inter); goto sets_error; }
+                    confs->items = items;
                 }
+                char *name = my_strdup(rule->lhs);
+                if (!name) { set_free(&inter); goto sets_error; }
+                LL1Conflict *c = &confs->items[confs->count++];
+                c->non_terminal = name; c->alt1 = i; c->alt2 = j; c->intersection = inter;
             }
         }
-
-        for (size_t a = 0; a < n_alts; a++) {
-            set_free(&sel_sets[a]);
-        }
-        free(sel_sets);
+        for (size_t i = 0; i < initialized; i++) set_free(&sets[i]);
+        free(sets);
+        continue;
+sets_error:
+        for (size_t i = 0; i < initialized; i++) set_free(&sets[i]);
+        free(sets);
+        goto error;
     }
+    return 1;
+error:
+    ll1_conflicts_free(confs);
+    return 0;
 }
 
 void ll1_grammar_free(LL1Grammar *g) {
     if (!g) return;
     for (size_t i = 0; i < g->rule_count; i++) {
-        free(g->rules[i].lhs);
-        alts_free(&g->rules[i].alts);
-        set_free(&g->rules[i].first);
-        set_free(&g->rules[i].follow);
+        rule_free(&g->rules[i]);
     }
     if (g->rules) free(g->rules);
     g->rules = NULL;
     g->rule_count = 0;
     g->rule_capacity = 0;
+    g->calculo_valido = 0;
     set_free(&g->non_terminals);
     set_free(&g->nullable);
 }

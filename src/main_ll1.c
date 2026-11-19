@@ -4,7 +4,8 @@
 #include <string.h>
 #include <stdint.h>
 
-static char *read_entire_file(const char *path) {
+static char *read_entire_file(const char *path, int *estado) {
+    *estado = 1;
     FILE *f = fopen(path, "rb");
     if (!f) {
         perror("Error al abrir archivo");
@@ -12,10 +13,12 @@ static char *read_entire_file(const char *path) {
     }
     if (fseek(f, 0, SEEK_END) != 0) { fclose(f); return NULL; }
     long size = ftell(f);
-    if (size < 0 || (uintmax_t)size >= SIZE_MAX || fseek(f, 0, SEEK_SET) != 0) { fclose(f); return NULL; }
+    if (size < 0 || fseek(f, 0, SEEK_SET) != 0) { fclose(f); return NULL; }
+    if ((uintmax_t)size >= SIZE_MAX) { *estado = 3; fclose(f); return NULL; }
 
     char *buf = (char *)malloc((size_t)size + 1);
     if (!buf) {
+        *estado = 3;
         fclose(f);
         return NULL;
     }
@@ -63,22 +66,52 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    char *text = read_entire_file(filename);
+    int estado_lectura;
+    char *text = read_entire_file(filename, &estado_lectura);
     if (!text) {
-        return 1;
+        if (estado_lectura == 3) fprintf(stderr, "Error: memoria insuficiente\n");
+        else fprintf(stderr, "Error al leer la gramática\n");
+        return estado_lectura;
     }
 
     LL1Grammar g;
-    if (!ll1_grammar_parse(&g, text)) {
-        fprintf(stderr, "Error: gramática vacía o mal formada\n");
+    int parse = ll1_grammar_parse(&g, text);
+    if (parse != 1) {
+        fprintf(stderr, parse < 0 ? "Error: memoria insuficiente\n" : "Error: gramática vacía o mal formada\n");
         ll1_grammar_free(&g);
         free(text);
-        return 2;
+        return parse < 0 ? 3 : 2;
     }
-    ll1_grammar_calculate(&g);
+    if (!ll1_grammar_calculate(&g)) {
+        fprintf(stderr, "Error: memoria insuficiente\n");
+        ll1_grammar_free(&g);
+        free(text);
+        return 3;
+    }
 
     LL1ConflictList confs;
-    ll1_grammar_find_conflicts(&g, &confs);
+    if (!ll1_grammar_find_conflicts(&g, &confs)) {
+        fprintf(stderr, "Error: memoria insuficiente\n");
+        ll1_grammar_free(&g);
+        free(text);
+        return 3;
+    }
+
+    /* Reservar antes de imprimir para no comunicar éxito si falla la salida. */
+    char **sorted_nt = NULL;
+    if (opt_sets) {
+        if (g.rule_count <= SIZE_MAX / sizeof(*sorted_nt))
+            sorted_nt = (char **)malloc(g.rule_count * sizeof(*sorted_nt));
+        if (!sorted_nt) {
+            fprintf(stderr, "Error: memoria insuficiente\n");
+            ll1_conflicts_free(&confs);
+            ll1_grammar_free(&g);
+            free(text);
+            return 3;
+        }
+        for (size_t i = 0; i < g.rule_count; i++) sorted_nt[i] = g.rules[i].lhs;
+        qsort(sorted_nt, g.rule_count, sizeof(*sorted_nt), compare_strings);
+    }
 
     if (confs.count > 0) {
         for (size_t i = 0; i < confs.count; i++) {
@@ -94,13 +127,6 @@ int main(int argc, char **argv) {
     }
 
     if (opt_sets) {
-        /* Ordenar no terminales alfabéticamente */
-        char **sorted_nt = (char **)malloc(g.rule_count * sizeof(char *));
-        for (size_t i = 0; i < g.rule_count; i++) {
-            sorted_nt[i] = g.rules[i].lhs;
-        }
-        qsort(sorted_nt, g.rule_count, sizeof(char *), compare_strings);
-
         for (size_t i = 0; i < g.rule_count; i++) {
             const char *nt = sorted_nt[i];
             if (nt[0] == '<') {

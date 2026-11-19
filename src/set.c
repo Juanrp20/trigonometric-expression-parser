@@ -20,20 +20,20 @@ int set_contains(const StringSet *s, const char *str) {
 }
 
 int set_add(StringSet *s, const char *str) {
-    if (!str || set_contains(s, str)) {
-        return 0;
-    }
+    if (!s || !str) return SET_ERROR;
+    if (set_contains(s, str)) return SET_SIN_CAMBIOS;
     if (s->count >= s->capacity) {
-        if (s->capacity > SIZE_MAX / 2 / sizeof(char *)) return 0;
+        if (s->capacity > SIZE_MAX / 2 / sizeof(char *)) return SET_ERROR;
         size_t new_cap = s->capacity == 0 ? 8 : s->capacity * 2;
         char **new_items = (char **)realloc(s->items, new_cap * sizeof(char *));
-        if (!new_items) return 0;
+        if (!new_items) return SET_ERROR;
         s->items = new_items;
         s->capacity = new_cap;
     }
     size_t len = strlen(str);
+    if (len == SIZE_MAX) return SET_ERROR;
     char *copia = (char *)malloc(len + 1);
-    if (!copia) return 0;
+    if (!copia) return SET_ERROR;
     memcpy(copia, str, len + 1);
     /* Inserción ordenada */
     size_t pos = s->count;
@@ -47,24 +47,27 @@ int set_add(StringSet *s, const char *str) {
 }
 
 int set_union(StringSet *dest, const StringSet *src) {
-    if (!src) return 0;
+    if (!dest || !src) return SET_ERROR;
     int changed = 0;
     for (size_t i = 0; i < src->count; i++) {
-        if (set_add(dest, src->items[i])) {
+        int r = set_add(dest, src->items[i]);
+        if (r == SET_ERROR) return SET_ERROR;
+        if (r == SET_CAMBIO) {
             changed = 1;
         }
     }
     return changed;
 }
 
-void set_intersect(StringSet *dest, const StringSet *s1, const StringSet *s2) {
+int set_intersect(StringSet *dest, const StringSet *s1, const StringSet *s2) {
     set_init(dest);
-    if (!s1 || !s2) return;
+    if (!s1 || !s2) return SET_ERROR;
     for (size_t i = 0; i < s1->count; i++) {
         if (set_contains(s2, s1->items[i])) {
-            set_add(dest, s1->items[i]);
+            if (set_add(dest, s1->items[i]) == SET_ERROR) return SET_ERROR;
         }
     }
+    return dest->count ? SET_CAMBIO : SET_SIN_CAMBIOS;
 }
 
 int set_is_subset(const StringSet *sub, const StringSet *parent) {

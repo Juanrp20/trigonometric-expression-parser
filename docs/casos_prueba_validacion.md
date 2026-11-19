@@ -43,7 +43,9 @@ La identidad `cos(x)^2+sin(x)^2 ≈ 1` se ejecutó con x = −7, −1, 0, 0.5, 3
 
 La suite C además prueba `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos y diferencias entre mayúsculas y minúsculas. La compilación limpia y todas las pruebas con AddressSanitizer y UBSan pasaron con `ASAN_OPTIONS=detect_leaks=0`. LeakSanitizer falló bajo `ptrace`; no se comprobó ausencia de fugas. No se midió cobertura.
 
-Las pruebas adicionales verifican el rechazo de gramáticas vacías, mal formadas y con no terminales indefinidos, el límite de 128 niveles para negaciones, paréntesis y potencias, árboles asociativos demasiado profundos y un fallo de reserva por tamaño no representable. `tests/test_ll1_cli.py` prueba los códigos de salida. `tests/test_memoria_fallos.c` inyecta fallos de `malloc` y `realloc` en lexer y arena de ambos parsers usando `--wrap` de GNU ld; se ejecutó en Linux con ASan y UBSan y `detect_leaks=0`. No se han inyectado fallos de reserva en el verificador LL(1).
+Las pruebas adicionales verifican el rechazo de gramáticas vacías, mal formadas y con no terminales indefinidos, el límite de 128 niveles para negaciones, paréntesis y potencias, árboles asociativos demasiado profundos y un fallo de reserva por tamaño no representable. `tests/test_ll1_cli.py` prueba los códigos de salida. `tests/test_memoria_fallos.c` inyecta fallos de `malloc` y `realloc` en lexer y arena de ambos parsers usando `--wrap` de GNU ld; se ejecutó en Linux con ASan y UBSan y `detect_leaks=0`.
+
+En el verificador LL(1), `ASAN_OPTIONS=detect_leaks=0 make test-ll1-memoria` inyectó individualmente fallos en 85 reservas del análisis de una gramática, 470 de una gramática más grande, 84 del cálculo, 35 de conflictos, 206 de la CLI con conflictos y 121 de la CLI sin conflictos. El contador de reservas instrumentadas terminó en cero tras cada intento; LeakSanitizer no pudo ejecutarse y esto no prueba la ausencia general de fugas.
 
 Para repetir la inyección en Linux con GCC y GNU ld:
 

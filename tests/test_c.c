@@ -361,10 +361,10 @@ static void test_ll1(void) {
     char *matematica = read_file_text("gramatica/expresiones_matematicas.txt");
     assert(matematica != NULL);
     LL1Grammar g_mat;
-    ll1_grammar_parse(&g_mat, matematica);
-    ll1_grammar_calculate(&g_mat);
+    assert(ll1_grammar_parse(&g_mat, matematica) == 1);
+    assert(ll1_grammar_calculate(&g_mat));
     LL1ConflictList confs_mat;
-    ll1_grammar_find_conflicts(&g_mat, &confs_mat);
+    assert(ll1_grammar_find_conflicts(&g_mat, &confs_mat));
     assert(confs_mat.count == 0);
     assert(g_mat.rule_count > 0 && strcmp(g_mat.rules[0].lhs, "<Inicio>") == 0);
     assert(set_contains(&g_mat.rules[0].first, "NUMBER"));
@@ -378,8 +378,8 @@ static void test_ll1(void) {
     char *corr = read_file_text("gramatica/toy_gramatica.txt");
     assert(corr != NULL);
     LL1Grammar g_corr;
-    ll1_grammar_parse(&g_corr, corr);
-    ll1_grammar_calculate(&g_corr);
+    assert(ll1_grammar_parse(&g_corr, corr) == 1);
+    assert(ll1_grammar_calculate(&g_corr));
 
     Rule *r_add = NULL;
     Rule *r_arg = NULL;
@@ -397,7 +397,7 @@ static void test_ll1(void) {
     assert(r_block->follow.count == 2);
 
     LL1ConflictList confs_corr;
-    ll1_grammar_find_conflicts(&g_corr, &confs_corr);
+    assert(ll1_grammar_find_conflicts(&g_corr, &confs_corr));
     assert(confs_corr.count == 0);
     ll1_conflicts_free(&confs_corr);
     ll1_grammar_free(&g_corr);
@@ -406,10 +406,10 @@ static void test_ll1(void) {
     char *orig = read_file_text("gramatica/toy_gramatica_original.txt");
     assert(orig != NULL);
     LL1Grammar g_orig;
-    ll1_grammar_parse(&g_orig, orig);
-    ll1_grammar_calculate(&g_orig);
+    assert(ll1_grammar_parse(&g_orig, orig) == 1);
+    assert(ll1_grammar_calculate(&g_orig));
     LL1ConflictList confs_orig;
-    ll1_grammar_find_conflicts(&g_orig, &confs_orig);
+    assert(ll1_grammar_find_conflicts(&g_orig, &confs_orig));
     assert(confs_orig.count == 2);
     ll1_conflicts_free(&confs_orig);
     ll1_grammar_free(&g_orig);
@@ -418,40 +418,40 @@ static void test_ll1(void) {
     /* Casos sintéticos de conflicto */
     {
         LL1Grammar g;
-        ll1_grammar_parse(&g, "<Program> -> <L> ID\n<L> -> { ID }");
-        ll1_grammar_calculate(&g);
+        assert(ll1_grammar_parse(&g, "<Program> -> <L> ID\n<L> -> { ID }") == 1);
+        assert(ll1_grammar_calculate(&g));
         LL1ConflictList c;
-        ll1_grammar_find_conflicts(&g, &c);
+        assert(ll1_grammar_find_conflicts(&g, &c));
         assert(c.count >= 1);
         ll1_conflicts_free(&c);
         ll1_grammar_free(&g);
     }
     {
         LL1Grammar g;
-        ll1_grammar_parse(&g, "<Program> -> [ ID ] ID");
-        ll1_grammar_calculate(&g);
+        assert(ll1_grammar_parse(&g, "<Program> -> [ ID ] ID") == 1);
+        assert(ll1_grammar_calculate(&g));
         LL1ConflictList c;
-        ll1_grammar_find_conflicts(&g, &c);
+        assert(ll1_grammar_find_conflicts(&g, &c));
         assert(c.count >= 1);
         ll1_conflicts_free(&c);
         ll1_grammar_free(&g);
     }
     {
         LL1Grammar g;
-        ll1_grammar_parse(&g, "<Program> -> ( ID | ID \"x\" )");
-        ll1_grammar_calculate(&g);
+        assert(ll1_grammar_parse(&g, "<Program> -> ( ID | ID \"x\" )") == 1);
+        assert(ll1_grammar_calculate(&g));
         LL1ConflictList c;
-        ll1_grammar_find_conflicts(&g, &c);
+        assert(ll1_grammar_find_conflicts(&g, &c));
         assert(c.count >= 1);
         ll1_conflicts_free(&c);
         ll1_grammar_free(&g);
     }
     {
         LL1Grammar g;
-        ll1_grammar_parse(&g, "<Program> -> <A>\n<A> -> \"a\" | \"a\" \"b\"");
-        ll1_grammar_calculate(&g);
+        assert(ll1_grammar_parse(&g, "<Program> -> <A>\n<A> -> \"a\" | \"a\" \"b\"") == 1);
+        assert(ll1_grammar_calculate(&g));
         LL1ConflictList c;
-        ll1_grammar_find_conflicts(&g, &c);
+        assert(ll1_grammar_find_conflicts(&g, &c));
         assert(c.count == 1);
         ll1_conflicts_free(&c);
         ll1_grammar_free(&g);
@@ -508,10 +508,10 @@ static void test_apendice_gramatica_original(void) {
     *end = '\0';
 
     LL1Grammar g_doc;
-    ll1_grammar_parse(&g_doc, start);
-    ll1_grammar_calculate(&g_doc);
+    assert(ll1_grammar_parse(&g_doc, start) == 1);
+    assert(ll1_grammar_calculate(&g_doc));
     LL1ConflictList confs_doc;
-    ll1_grammar_find_conflicts(&g_doc, &confs_doc);
+    assert(ll1_grammar_find_conflicts(&g_doc, &confs_doc));
     assert(confs_doc.count == 2);
     ll1_conflicts_free(&confs_doc);
     ll1_grammar_free(&g_doc);

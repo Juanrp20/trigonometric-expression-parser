@@ -134,13 +134,15 @@ python3 tests/validacion_final.py  # opcional: resultados de extremo a extremo
 python3 tests/test_ll1_cli.py      # opcional: códigos de salida del verificador
 ```
 
-En UCRT64 use `./toy_ll1.exe gramatica/expresiones_matematicas.txt --sets`. La salida `ninguno` indica que el verificador no detectó conflictos. El código de salida es 0 sin conflictos, 1 cuando hay conflictos o errores de lectura, y 2 para gramáticas vacías o mal formadas. La validación adicional con Python usa su biblioteca estándar; requiere que `calculadora_expr` esté compilada en Linux.
+En UCRT64 use `./toy_ll1.exe gramatica/expresiones_matematicas.txt --sets`. La salida `ninguno` indica que el verificador no detectó conflictos. El código de salida es 0 sin conflictos, 1 cuando hay conflictos o errores de lectura, 2 para gramáticas vacías o mal formadas y 3 si faltan memoria o recursos de reserva. La validación adicional con Python usa su biblioteca estándar; requiere que `calculadora_expr` esté compilada en Linux.
+
+En Linux con GCC y GNU ld, `ASAN_OPTIONS=detect_leaks=0 make test-ll1-memoria` ejecuta la inyección determinista de fallos de reserva del verificador. Este objetivo opcional usa `--wrap` y no forma parte de las pruebas para Windows.
 
 ## Informe y limitaciones
 
 El [informe técnico PDF](docs/informe_tecnico.pdf), su [fuente LaTeX](docs/informe_tecnico.tex), los [casos y resultados](docs/casos_prueba_validacion.md), la [matriz de trazabilidad](docs/matriz_trazabilidad.md) y la [gramática documentada](docs/gramatica_expresiones_matematicas.md) forman parte de la entrega. Para regenerar el PDF, ejecuta dos veces `pdflatex -output-directory=docs docs/informe_tecnico.tex`.
 
-La consola evalúa una expresión por ejecución y no incorpora constantes predefinidas como `pi`. Se limita a 128 la profundidad del descenso sintáctico y a 128 nodos la de los recorridos del AST; árboles asociativos largos pueden alcanzar este segundo límite aun sin paréntesis. Las conversiones y potencias que producen `ERANGE` se rechazan, incluido el subdesbordamiento. El lexer y la arena detectan errores de reserva en sus rutas principales; el verificador LL(1) heredado aún contiene asignaciones sin manejo completo de fallos, por lo que no se garantiza su recuperación ante agotamiento de memoria. La disponibilidad de sanitizadores depende del entorno.
+La consola evalúa una expresión por ejecución y no incorpora constantes predefinidas como `pi`. Se limita a 128 la profundidad del descenso sintáctico y a 128 nodos la de los recorridos del AST; árboles asociativos largos pueden alcanzar este segundo límite aun sin paréntesis. Las conversiones y potencias que producen `ERANGE` se rechazan, incluido el subdesbordamiento. Las rutas de memoria de otros componentes heredados no se han sometido exhaustivamente a inyección de fallos. La disponibilidad de sanitizadores depende del entorno.
 
 ## Componentes heredados de Toy
 

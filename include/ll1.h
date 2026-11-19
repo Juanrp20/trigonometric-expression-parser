@@ -29,6 +29,7 @@ typedef struct {
     size_t rule_capacity;
     StringSet non_terminals;
     StringSet nullable;
+    int calculo_valido;
 } LL1Grammar;
 
 typedef struct {
@@ -46,8 +47,10 @@ typedef struct {
 
 void ll1_grammar_init(LL1Grammar *g);
 int ll1_grammar_parse(LL1Grammar *g, const char *ebnf_text);
-void ll1_grammar_calculate(LL1Grammar *g);
-void ll1_grammar_find_conflicts(LL1Grammar *g, LL1ConflictList *confs);
+/* parse: 1 éxito, 0 sintaxis, -1 memoria; calculate/conflicts: 1 éxito, 0 error.
+   Tras un error, liberar la gramática; los conjuntos parciales no son válidos. */
+int ll1_grammar_calculate(LL1Grammar *g);
+int ll1_grammar_find_conflicts(LL1Grammar *g, LL1ConflictList *confs);
 void ll1_grammar_free(LL1Grammar *g);
 
 void ll1_conflicts_init(LL1ConflictList *list);

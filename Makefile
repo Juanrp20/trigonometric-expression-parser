@@ -40,6 +40,7 @@ TEST_BIN = test_c$(EXE)
 TEST_EXPR_BIN = test_parser_expr$(EXE)
 TEST_EVAL_BIN = test_evaluador_expr$(EXE)
 TEST_CONSOLE_BIN = test_consola_expr$(EXE)
+TEST_LL1_MEM_BIN = test_ll1_memoria$(EXE)
 TARGET_EXPR = calculadora_expr$(EXE)
 
 all: $(TARGET) $(TARGET_LL1) $(TARGET_EXPR)
@@ -82,9 +83,21 @@ test: $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN)
 	$(RUN_EVAL_TEST)
 	$(RUN_CONSOLE_TEST)
 
-clean:
-	-$(RM) $(TARGET) $(TARGET_LL1) $(TARGET_EXPR) $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN)
+ifeq ($(OS),Windows_NT)
+test-ll1-memoria:
+	@echo Prueba disponible en Linux con GCC y GNU ld.
+	@exit 1
+else
+$(TEST_LL1_MEM_BIN): $(LL1_SRC) src/main_ll1.c tests/test_ll1_memoria.c tests/ll1_memoria_gramatica.txt tests/ll1_memoria_sin_conflictos.txt $(HEADERS)
+	$(CC) $(DEBUG_FLAGS) -Wl,--wrap=malloc -Wl,--wrap=realloc -Wl,--wrap=free -o $@ $(LL1_SRC) tests/test_ll1_memoria.c
 
-.PHONY: all debug test clean
+test-ll1-memoria: $(TEST_LL1_MEM_BIN)
+	./$(TEST_LL1_MEM_BIN)
+endif
+
+clean:
+	-$(RM) $(TARGET) $(TARGET_LL1) $(TARGET_EXPR) $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN) $(TEST_LL1_MEM_BIN)
+
+.PHONY: all debug test test-ll1-memoria clean
 
 

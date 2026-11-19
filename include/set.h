@@ -9,11 +9,15 @@ typedef struct {
     size_t capacity;
 } StringSet;
 
+/* -1: error, 0: sin cambios, 1: se insertó al menos un elemento. */
+enum { SET_ERROR = -1, SET_SIN_CAMBIOS = 0, SET_CAMBIO = 1 };
+
 void set_init(StringSet *s);
 int set_add(StringSet *s, const char *str);
 int set_contains(const StringSet *s, const char *str);
 int set_union(StringSet *dest, const StringSet *src);
-void set_intersect(StringSet *dest, const StringSet *s1, const StringSet *s2);
+/* Inicializa dest; aun en caso de error debe liberarse con set_free. */
+int set_intersect(StringSet *dest, const StringSet *s1, const StringSet *s2);
 int set_is_subset(const StringSet *sub, const StringSet *parent);
 void set_clear(StringSet *s);
 void set_free(StringSet *s);
