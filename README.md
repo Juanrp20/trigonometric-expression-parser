@@ -56,14 +56,14 @@ make test
 Desde `cmd`, en la raíz del repositorio:
 
 ```bat
-build.bat all
-build.bat test
-calculadora_expr.exe
-verificar_ll1.exe gramatica\expresiones_matematicas.txt --sets
-build.bat clean
+.\build.bat all 
+.\build.bat test
+.\calculadora_expr.exe
+.\verificar_ll1.exe gramatica\expresiones_matematicas.txt --sets
+.\build.bat clean
 ```
 
-`build.bat test` compila y ejecuta las cinco suites C. No necesita MSYS shell, `make` ni herramientas GNU adicionales.
+`.\build.bat test` compila y ejecuta las cinco suites C. No necesita MSYS shell, `make` ni herramientas GNU adicionales.
 
 ## Compilación manual con GCC
 
@@ -112,7 +112,7 @@ Los esperados numéricos son constantes fijas en los tests; no se calculan con `
 El verificador también se ejecuta de forma independiente:
 
 ```bash
-./verificar_ll1 gramatica/expresiones_matematicas.txt --sets
+.\verificar_ll1 gramatica/expresiones_matematicas.txt --sets
 ```
 
 La salida `ninguno` indica cero conflictos. Códigos: `0` sin conflictos, `1` conflictos o error de lectura, `2` gramática vacía o mal formada, `3` fallo de reserva.
