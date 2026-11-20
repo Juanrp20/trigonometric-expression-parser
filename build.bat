@@ -38,6 +38,8 @@ gcc %TFLAGS% -o test_consola_expr.exe %EXPR% tests\test_consola_expr.c -lm
 if errorlevel 1 exit /b 1
 gcc %TFLAGS% -o test_ll1.exe %LL1% tests\test_ll1.c
 if errorlevel 1 exit /b 1
+gcc %TFLAGS% -o test_ll1_cli.exe tests\test_ll1_cli.c
+if errorlevel 1 exit /b 1
 exit /b 0
 
 :all
@@ -62,6 +64,8 @@ test_consola_expr.exe
 if errorlevel 1 exit /b 1
 test_ll1.exe
 if errorlevel 1 exit /b 1
+test_ll1_cli.exe
+if errorlevel 1 exit /b 1
 goto done
 
 :clean
@@ -71,6 +75,8 @@ if exist test_parser_expr.exe del /Q /F test_parser_expr.exe
 if exist test_evaluador_expr.exe del /Q /F test_evaluador_expr.exe
 if exist test_consola_expr.exe del /Q /F test_consola_expr.exe
 if exist test_ll1.exe del /Q /F test_ll1.exe
+if exist test_ll1_cli.exe del /Q /F test_ll1_cli.exe
+if exist ll1_cli_*.tmp del /Q /F ll1_cli_*.tmp
 goto done
 
 :done

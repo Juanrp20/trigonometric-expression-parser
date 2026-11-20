@@ -10,7 +10,10 @@
 /test_consola_expr.exe
 /test_ll1
 /test_ll1.exe
+/test_ll1_cli
+/test_ll1_cli.exe
 *.o
+*.tmp
 /docs/*.aux
 /docs/*.log
 /docs/*.out

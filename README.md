@@ -22,7 +22,7 @@ src/      implementaciones y puntos de entrada
   lexer.c, token.c, ast.c, arena.c  componentes del analizador
   main_verificar_ll1.c, ll1.c, set.c verificador de la gramática
 gramatica/ gramática EBNF de las expresiones
-tests/    cuatro suites C: parser, evaluador, consola y LL(1)
+tests/    cinco suites C: parser, evaluador, consola, API LL(1) y CLI del verificador
 docs/     enunciado, gramática, casos, trazabilidad e informe
 Makefile  compilación en Linux
 build.bat compilación en Windows con MinGW-w64
@@ -63,7 +63,7 @@ verificar_ll1.exe gramatica\expresiones_matematicas.txt --sets
 build.bat clean
 ```
 
-`build.bat test` compila y ejecuta las cuatro suites C. No necesita MSYS shell, `make` ni herramientas GNU adicionales.
+`build.bat test` compila y ejecuta las cinco suites C. No necesita MSYS shell, `make` ni herramientas GNU adicionales.
 
 ## Compilación manual con GCC
 
@@ -104,9 +104,10 @@ Códigos de salida: `0` éxito, `1` error de lectura o recursos, `2` expresión 
 - `test_parser_expr`: expresiones válidas e inválidas, precedencia, diagnósticos y límites.
 - `test_evaluador_expr`: aritmética, trigonometría, variables, errores y profundidad.
 - `test_consola_expr`: casos del enunciado, variables, reintentos, EOF y errores.
-- `test_ll1`: gramática sin conflictos, gramáticas inválidas y detección de conflictos.
+- `test_ll1`: lee `gramatica/expresiones_matematicas.txt` y comprueba la API con la gramática real, gramáticas inválidas y detección de conflictos.
+- `test_ll1_cli`: ejecuta `verificar_ll1` desde la raíz del repositorio con `system()`, comprueba códigos y mensajes, y limpia sus archivos `.tmp`.
 
-Cada suite imprime `OK`; un fallo detiene la ejecución y devuelve código distinto de cero.
+Los esperados numéricos son constantes fijas en los tests; no se calculan con `sin`, `cos` ni `tan` de `math.h`. Cada suite imprime `OK`; un fallo detiene la ejecución y devuelve código distinto de cero.
 
 El verificador también se ejecuta de forma independiente:
 

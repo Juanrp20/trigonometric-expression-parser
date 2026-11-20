@@ -24,7 +24,8 @@ TEST_PARSER = test_parser_expr$(EXE)
 TEST_EVAL = test_evaluador_expr$(EXE)
 TEST_CONSOLE = test_consola_expr$(EXE)
 TEST_LL1 = test_ll1$(EXE)
-TESTS = $(TEST_PARSER) $(TEST_EVAL) $(TEST_CONSOLE) $(TEST_LL1)
+TEST_CLI = test_ll1_cli$(EXE)
+TESTS = $(TEST_PARSER) $(TEST_EVAL) $(TEST_CONSOLE) $(TEST_LL1) $(TEST_CLI)
 
 HEADERS = $(wildcard include/*.h)
 
@@ -57,13 +58,18 @@ $(TEST_CONSOLE): $(EXPR_SRC) tests/test_consola_expr.c $(HEADERS)
 $(TEST_LL1): $(LL1_SRC) tests/test_ll1.c $(HEADERS)
 	$(CC) $(DEBUG_FLAGS) -o $@ $(LL1_SRC) tests/test_ll1.c
 
+$(TEST_CLI): $(TARGET_LL1) tests/test_ll1_cli.c
+	$(CC) $(DEBUG_FLAGS) -o $@ tests/test_ll1_cli.c
+
 test: $(TESTS)
 	$(RUN)test_parser_expr$(EXE)
 	$(RUN)test_evaluador_expr$(EXE)
 	$(RUN)test_consola_expr$(EXE)
 	$(RUN)test_ll1$(EXE)
+	$(RUN)test_ll1_cli$(EXE)
 
 clean:
 	-$(RM) $(TARGET_EXPR) $(TARGET_LL1) $(TESTS)
+	-$(RM) ll1_cli_*.tmp
 
 .PHONY: all debug test clean
