@@ -4,57 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a0a66892-a653-4dba-9a66-9042e97a0454" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ARQUITECTURA_C.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/casos_prueba_validacion.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/casos_prueba_validacion.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/compiladores_trabajo_pr_ctico_3.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/compiladores_trabajo_pr_ctico_3.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/especificacion_y_diseno_formal_del_lenguaje_toy.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/gramatica_expresiones_matematicas.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/gramatica_expresiones_matematicas.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/gramatica_formal_del_lenguaje_toy.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/gramatica_toy.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/informe_tecnico.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/docs/informe_tecnico.pdf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/informe_tecnico.tex" beforeDir="false" afterPath="$PROJECT_DIR$/docs/informe_tecnico.tex" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/matriz_trazabilidad.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/matriz_trazabilidad.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ejemplos/ok_completo.toy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ejemplos/ok_minimo.toy" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/gramatica/toy_gramatica.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/gramatica/toy_gramatica_original.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/arena.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/arena.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ast.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ast.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/consola_expr.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/consola_expr.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/evaluador_expr.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/evaluador_expr.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/expr_limites.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/expr_limites.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/lexer.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/lexer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ll1.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ll1.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/parser.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/parser_expr.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/parser_expr.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/set.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/set.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/token.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/token.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ast.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/ast.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/consola_expr.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/consola_expr.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/evaluador_expr.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/evaluador_expr.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lexer.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/lexer.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ll1.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/ll1.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main_ll1.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/parser.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/parser_expr.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/parser_expr.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/set.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/set.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/token.c" beforeDir="false" afterPath="$PROJECT_DIR$/src/token.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/ll1_memoria_gramatica.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/ll1_memoria_sin_conflictos.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_c.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_consola_expr.c" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_consola_expr.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_evaluador_expr.c" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_evaluador_expr.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_ll1_cli.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_ll1_memoria.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_memoria_fallos.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/test_parser_expr.c" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_parser_expr.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/validacion_final.py" beforeDir="false" />
-    </list>
+    <list default="true" id="a0a66892-a653-4dba-9a66-9042e97a0454" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -84,24 +34,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;CidrDebugProfileConversion&quot;: &quot;true&quot;,
-    &quot;CidrDebugProfileConversion262&quot;: &quot;true&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;python.packages.toolwindow.project.migrated.to.right.top.v2&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "CidrDebugProfileConversion": "true",
+    "CidrDebugProfileConversion262": "true",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "git-widget-placeholder": "mejora-pruebas",
+    "kotlin-language-version-configured": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "python.packages.toolwindow.project.migrated.to.right.top.v2": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager">
     <configuration default="true" type="JetRunConfigurationType">
       <module name="Tarea3" />

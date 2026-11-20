@@ -94,7 +94,7 @@ El descenso sintáctico tiene un límite de 128 niveles de \texttt{<Unario>}; la
 
 La compilación usa solo C99 y la biblioteca estándar. En Linux se emplea \texttt{make}; en Windows se emplea \texttt{build.bat} con MinGW-w64/GCC desde \texttt{cmd}. El script no requiere interpretes, MSYS shell ni enlazadores GNU. Los mensajes de ejecución son ASCII para evitar dependencias de la pagina de codigos de consola.
 \section{Casos de prueba y resultados}
-Se ejecutaron los siete ejemplos del enunciado con el programa de consola y se verificaron mediante la suite C \texttt{test\_consola\_expr}, con tolerancia absoluta y relativa de $10^{-12}$. Las referencias se calculan con la biblioteca matemática de C y con identidades analíticas. Los resultados siguientes son los observados, redondeados a 15 cifras; el documento \texttt{casos\_prueba\_validacion.md} contiene los valores con mayor precisión y más pruebas.
+Se ejecutaron los siete ejemplos del enunciado con el programa de consola y se verificaron mediante la suite C \texttt{test\_consola\_expr}, con tolerancia absoluta y relativa de $10^{-12}$. Los valores esperados son constantes fijas precalculadas dentro de los tests; no se calculan con \texttt{sin}, \texttt{cos} ni \texttt{tan} durante la prueba. La identidad trigonométrica se compara con la constante $1$. Los resultados siguientes son los observados, redondeados a 15 cifras; el documento \texttt{casos\_prueba\_validacion.md} contiene los valores con mayor precisión y más pruebas.
 \begin{longtable}{p{5.7cm}p{2.5cm}p{3.8cm}l}\toprule
 Expresión & Variables & Resultado & Estado \\\midrule\endhead
 \verb|sin(3.14/2)+cos(0)*2^2| & -- & 4.99999968293183 & Pasa \\
@@ -118,7 +118,7 @@ Entrada & Resultado observado & Estado \\\midrule
 \texttt{sin(1,2)} & Error léxico, código 2 & Pasa \\
 \texttt{1/0}, \verb|0^-1| & Error matemático, código 4 & Pasa \\
 \verb|(-1)^0.5|, \verb|10^1000| & Dominio o rango, código 4 & Pasa \\\bottomrule\end{tabular}\end{center}
-Se ejecutaron \texttt{make clean}, \texttt{make all} y \texttt{make test} con \texttt{-Werror}. Pasaron las cuatro suites C: parser, evaluador, consola y verificador LL(1). La verificación de Windows se realiza con \texttt{build.bat all} y \texttt{build.bat test}; el entorno de este informe no dispone de MinGW para ejecutarla. No se midió cobertura.
+Se ejecutaron \texttt{make clean}, \texttt{make all} y \texttt{make test} con \texttt{-Werror}. Pasaron las cinco suites C: parser, evaluador, consola, API LL(1) y CLI del verificador. \texttt{test\_ll1} lee el archivo real de la gramática; \texttt{test\_ll1\_cli} ejecuta \texttt{verificar\_ll1} con conjuntos, un conflicto, tres gramáticas inválidas y un archivo inexistente. La verificación de Windows se realiza con \texttt{build.bat all} y \texttt{build.bat test}; el entorno de este informe no dispone de MinGW para ejecutarla. No se midió cobertura.
 \section{Conclusiones}
 Se obtuvo un reconocedor LL(1), un AST y un evaluador numérico integrados en una consola. La separación de fases permitió identificar errores, verificar la precedencia mediante la estructura del árbol y mantener un único conjunto de pruebas C portable.
 

@@ -1,6 +1,6 @@
 # Casos de prueba y validación matemática
 
-Resultados obtenidos con `calculadora_expr` y verificados por la suite C `tests/test_consola_expr.c`. El entorno de referencia es GCC 13.3.0 con `double`. Las comparaciones usan tolerancia relativa y absoluta de `1e-12`. Las entradas para variables aparecen en el orden en que la consola las solicita.
+Resultados obtenidos con `calculadora_expr` y verificados por la suite C `tests/test_consola_expr.c`. El entorno de referencia es GCC 13.3.0 con `double`. Los valores esperados son constantes fijas dentro de los tests: se comparan contra valores precalculados, no contra otra implementación de funciones trascendentes. Las comparaciones usan tolerancia relativa y absoluta de `1e-12`. Las entradas para variables aparecen en el orden en que la consola las solicita. La identidad `cos(x)^2+sin(x)^2 = 1` se verifica con la constante `1`.
 
 | ID | Expresión | Variables | Esperado | Obtenido | Validación matemática | Estado |
 |---|---|---|---:|---:|---|---|
@@ -41,7 +41,7 @@ La identidad `cos(x)^2+sin(x)^2 ≈ 1` se ejecutó con x = −7, −1, 0, 0.5, 3
 | M03 | `(-1)^0.5` | error matemático | código 4, dominio real | raíz real de negativo | Pasa |
 | M04 | `10^1000` | error matemático | código 4, fuera de rango | desbordamiento | Pasa |
 
-Las suites C cubren además `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos, diferencias entre mayúsculas y minúsculas, límites de profundidad y errores del verificador LL(1).
+Las cinco suites C cubren además `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos, diferencias entre mayúsculas y minúsculas, límites de profundidad, la API del verificador LL(1) y el ejecutable `verificar_ll1` mediante `test_ll1_cli`.
 
 Para reproducir la validación:
 
