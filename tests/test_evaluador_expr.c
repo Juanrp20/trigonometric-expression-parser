@@ -50,8 +50,9 @@ static void probar_aritmetica_y_trigonometria(void) {
         {"2+3*4", 14}, {"8-3-1", 4}, {"8/4/2", 1}, {"2^3^2", 512},
         {"-2^2", -4}, {"2^-2", 0.25}, {"1--2", 3}, {"sin(0)", 0},
         {"sen(0)", 0}, {"cos(0)", 1}, {"tan(0)", 0},
-        {"sin(cos(0))", sin(1.0)}, {"tan(1.5707963267948966)", tan(1.5707963267948966)},
-        {"sin(3.14/2)+cos(0)*2^2", sin(3.14/2.0)+4.0}
+        {"sin(cos(0))", 0.8414709848078965},
+        {"tan(1.5707963267948966)", 1.6331239353195370e+16},
+        {"sin(3.14/2)+cos(0)*2^2", 4.9999996829318345}
     };
     for (size_t i = 0; i < sizeof(casos)/sizeof(casos[0]); i++)
         cercano(casos[i].texto, NULL, casos[i].valor);
@@ -67,9 +68,9 @@ static void probar_variables(void) {
     cercano("x+x", &vars, 6.0);
     entradas[0].valor = 0.0;
     cercano("sin(x)+cos(y)", &vars, 1.0);
-    cercano("sin(cos(x))+tan(y)/cos(x)", &vars, sin(1.0));
+    cercano("sin(cos(x))+tan(y)/cos(x)", &vars, 0.8414709848078965);
     entradas[0].valor = 1.0;
-    cercano("tan(x^2+sin(x))", &vars, tan(1.0 + sin(1.0)));
+    cercano("tan(x^2+sin(x))", &vars, -3.6038035320088055);
     const double valores[] = {-7.0, -1.0, 0.0, 0.5, 3.14, 100.0};
     for (size_t i = 0; i < sizeof(valores)/sizeof(valores[0]); i++) {
         entradas[0].valor = valores[i];

@@ -53,13 +53,13 @@ static void valido_cercano(const char *entrada, double esperado) {
 }
 
 static void probar_casos_validacion(void) {
-    valido_cercano("sin(3.14/2)+cos(0)*2^2\n", sin(3.14/2.0) + 4.0);
+    valido_cercano("sin(3.14/2)+cos(0)*2^2\n", 4.9999996829318345);
     valido_cercano("sin(x)+cos(y)\n0\n0\n", 1.0);
-    valido_cercano("sin(cos(x))+tan(y)/cos(x)\n0\n0\n", sin(1.0));
+    valido_cercano("sin(cos(x))+tan(y)/cos(x)\n0\n0\n", 0.8414709848078965);
     valido_cercano("cos(x)^2+sin(x)^2\n1\n", 1.0);
-    valido_cercano("sin(x)\n1\n", sin(1.0));
-    valido_cercano("cos(x+y)\n1\n2\n", cos(3.0));
-    valido_cercano("tan(x^2+sin(x))\n1\n", tan(1.0 + sin(1.0)));
+    valido_cercano("sin(x)\n1\n", 0.8414709848078965);
+    valido_cercano("cos(x+y)\n1\n2\n", -0.98999249660044542);
+    valido_cercano("tan(x^2+sin(x))\n1\n", -3.6038035320088055);
     valido("2+3*4\n", "Resultado: 14\n");
     valido("8-3-1\n", "Resultado: 4\n");
     valido("8/4/2\n", "Resultado: 1\n");
@@ -95,7 +95,7 @@ int main(void) {
     assert(r.codigo == 0 && strstr(r.salida, "Resultado: 6\n") && contar(r.salida, "Valor de x:") == 1);
     valido("x^2+2*x+1\n3\n", "Resultado: 16\n");
     valido_cercano("cos(x)^2+sen(x)^2\n1\n", 1.0);
-    valido_cercano("sin(cos(x))+tan(y)/cos(x)\n0\n0\n", sin(1.0));
+    valido_cercano("sin(cos(x))+tan(y)/cos(x)\n0\n0\n", 0.8414709848078965);
     r = ejecutar("x+sin()\n3\n");
     assert(r.codigo == 2 && strstr(r.errores, "Linea 1, columna") && !strstr(r.salida, "Valor de"));
     r = ejecutar("x\n\nabc\n1.2junk\nnan\ninf\n1e9999\n -2.5 \n");
