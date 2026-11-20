@@ -29,18 +29,18 @@ De menor a mayor precedencia:
 ## Contrato léxico
 
 - `NUMBER` representa un entero o decimal con dígitos antes y, si hay punto,
-  después de este: `[0-9]+(\.[0-9]+)?`. Es la forma ya reconocida por Toy;
-  `.5`, `5.` y la notación científica quedan fuera de esta gramática.
+  después de este: `[0-9]+(\.[0-9]+)?`. No se admiten `.5`, `5.` ni notación
+  científica en los literales de la expresión.
 - `ID` representa un identificador que comienza con letra ASCII o `_` y
   continúa con letras ASCII, dígitos o `_`. Se reserva exactamente `sin`,
   `sen`, `cos` y `tan` para las funciones; nombres como `seno` siguen siendo
-  identificadores. Las palabras reservadas de Toy no se reservan aquí.
+  identificadores. No existen otras palabras reservadas.
 - Los símbolos entre comillas son terminales distintos de `NUMBER` e `ID`.
   En particular, el léxico matemático clasifica los cuatro
   nombres de función antes que `ID`. La verificación LL(1) depende de que
   estas clases no se solapen.
-- Se admiten espacios entre tokens. El modo matemático no trata
-  `--` como comentario de Toy: `1--2` representa `1 - (-2)`.
+- Se admiten espacios entre tokens. La secuencia `--` son dos signos
+  negativos: `1--2` representa `1 - (-2)`.
 
 La gramática describe sintaxis. El punto medio `·` usado en el enunciado representa multiplicación;
 su representación textual en este lenguaje es `*`.
@@ -52,12 +52,15 @@ calcula PRIMERO y SIGUIENTE y comprueba los conjuntos de selección de cada
 alternativa. Para reproducir la verificación:
 
 ```sh
-make toy_ll1
-./toy_ll1 gramatica/expresiones_matematicas.txt --sets
+make verificar_ll1
+./verificar_ll1 gramatica/expresiones_matematicas.txt --sets
 ```
 
-La salida debe indicar `ninguno` para conflictos. El modo matemático se activa
-con `lexer_init_matematico`; `lexer_init` conserva el comportamiento de Toy.
+En Windows: `build.bat all` y
+`verificar_ll1.exe gramatica\expresiones_matematicas.txt --sets`.
+
+La salida debe indicar `ninguno` para conflictos. El lexer tiene un único modo
+matemático, configurado con `lexer_init`.
 Los nombres de función se emiten como `TOK_SIN`, `TOK_SEN`, `TOK_COS` y
 `TOK_TAN`, y los identificadores ordinarios como `TOK_ID`.
 
@@ -88,8 +91,8 @@ Las funciones internas siguen las reglas de la gramática: `expr`, `termino`,
 `unario`, `potencia`, `primario` y `funcion`. Las repeticiones de suma,
 resta, multiplicación y división construyen nodos por la izquierda; la
 recursión desde el exponente construye potencias por la derecha. El punto de
-entrada exige `TOK_EOF`. El AST reutiliza las estructuras de Toy y conserva
-operandos y operadores para el evaluador; el parser no evalúa ni
+entrada exige `TOK_EOF`. El AST conserva operandos y operadores para el
+evaluador; el parser no evalúa ni
 solicita valores de variables.
 
 El descenso sintáctico admite hasta 128 niveles de llamada a la regla

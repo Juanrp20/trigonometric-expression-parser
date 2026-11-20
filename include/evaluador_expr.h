@@ -1,5 +1,5 @@
-#ifndef TOY_EVALUADOR_EXPR_H
-#define TOY_EVALUADOR_EXPR_H
+#ifndef EXPR_EVALUADOR_EXPR_H
+#define EXPR_EVALUADOR_EXPR_H
 
 #include "ast.h"
 
@@ -8,11 +8,11 @@ typedef int (*ExprResolverVariable)(const char *nombre, void *contexto, double *
 
 typedef struct {
     int exito;
-    double valor;             /* Solo es válido cuando exito es distinto de cero. */
+    double valor;             /* Solo es valido cuando exito es distinto de cero. */
     char error[256];
 } ExprResultado;
 
 /* No modifica ni posee el AST. El resolver y el contexto pueden ser NULL. */
 ExprResultado evaluador_expr(const ASTExpr *expr, ExprResolverVariable resolver, void *contexto);
 
-#endif /* TOY_EVALUADOR_EXPR_H */
+#endif /* EXPR_EVALUADOR_EXPR_H */

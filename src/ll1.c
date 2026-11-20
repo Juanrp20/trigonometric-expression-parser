@@ -47,7 +47,7 @@ static void tok_list_init(EbnfTokenList *l) {
     l->capacity = 0;
 }
 
-/* Solo actualiza la capacidad después de reservar correctamente. */
+/* Solo actualiza la capacidad despues de reservar correctamente. */
 static void *grow(void *ptr, size_t *capacity, size_t width, size_t initial) {
     if (*capacity > SIZE_MAX / 2) return NULL;
     size_t next = *capacity ? *capacity * 2 : initial;
@@ -117,7 +117,7 @@ static void alts_init(AltList *a) {
     a->capacity = 0;
 }
 
-/* La secuencia pasa a ser propiedad de la lista solo en caso de éxito. */
+/* La secuencia pasa a ser propiedad de la lista solo en caso de exito. */
 static int alts_push(AltList *a, SymbolSeq seq) {
     if (a->count >= a->capacity) {
         SymbolSeq *items = grow(a->items, &a->capacity, sizeof(*items), 4);
@@ -306,7 +306,7 @@ static int tokenize_ebnf(const char *text, EbnfTokenList *tokens) {
                 continue;
             }
 
-            return 0; /* Los terminales de puntuación deben ir entre comillas. */
+            return 0; /* Los terminales de puntuacion deben ir entre comillas. */
         }
     }
     return 1;
@@ -402,7 +402,7 @@ static char *parse_rhs_factor(RhsParser *rp) {
     alts_init(&aux);
     char *nombre = NULL;
     if (!parse_rhs_expr(rp, &inner)) goto error;
-    rp->pos++; /* El cierre ya fue validado antes del análisis. */
+    rp->pos++; /* El cierre ya fue validado antes del analisis. */
     nombre = make_aux_name(rp->aux_map, rp->orig_lhs);
     if (!nombre) goto error;
     for (size_t i = 0; i < inner.count; i++) {

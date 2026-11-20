@@ -35,7 +35,7 @@ int set_add(StringSet *s, const char *str) {
     char *copia = (char *)malloc(len + 1);
     if (!copia) return SET_ERROR;
     memcpy(copia, str, len + 1);
-    /* Inserción ordenada */
+    /* Insercion ordenada */
     size_t pos = s->count;
     while (pos > 0 && strcmp(s->items[pos - 1], str) > 0) {
         s->items[pos] = s->items[pos - 1];

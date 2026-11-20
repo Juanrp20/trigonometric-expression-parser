@@ -20,7 +20,7 @@ typedef struct {
     size_t capacity;
 } Variables;
 
-/* 1: línea leída, 0: EOF sin datos, -1: error de lectura o memoria. */
+/* 1: linea leida, 0: EOF sin datos, -1: error de lectura o memoria. */
 static int leer_linea(FILE *entrada, char **linea) {
     size_t capacidad = 128, longitud = 0;
     char *buffer = malloc(capacidad);
@@ -106,12 +106,12 @@ int consola_expr_ejecutar(FILE *entrada, FILE *salida, FILE *errores) {
     char *texto = NULL;
     Variables vars = {NULL, 0, 0};
     int estado = 1;
-    fputs("Expresión: ", salida);
+    fputs("Expresion: ", salida);
     fflush(salida);
     int lectura = leer_linea(entrada, &texto);
     if (lectura != 1) {
-        fprintf(errores, lectura == 0 ? "Fin de entrada al leer la expresión.\n" :
-                                      "Error al leer la expresión.\n");
+        fprintf(errores, lectura == 0 ? "Fin de entrada al leer la expresion.\n" :
+                                      "Error al leer la expresion.\n");
         return lectura == 0 ? 3 : 1;
     }
 
@@ -119,13 +119,13 @@ int consola_expr_ejecutar(FILE *entrada, FILE *salida, FILE *errores) {
     parser_expr_init(&parser, texto);
     const ASTExpr *ast = parser_expr_parse(&parser);
     if (!ast) {
-        fprintf(errores, "Error de expresión: %s\n", parser.error_msg);
+        fprintf(errores, "Error de expresion: %s\n", parser.error_msg);
         estado = 2;
         goto fin;
     }
     int recogida = recoger_variables(&vars, ast, 1);
     if (recogida != 1) {
-        fputs(recogida < 0 ? "Error: profundidad máxima del AST excedida.\n" : "Error al recopilar variables.\n", errores);
+        fputs(recogida < 0 ? "Error: profundidad maxima del AST excedida.\n" : "Error al recopilar variables.\n", errores);
         goto fin;
     }
     for (size_t i = 0; i < vars.count; i++) {
@@ -143,12 +143,12 @@ int consola_expr_ejecutar(FILE *entrada, FILE *salida, FILE *errores) {
             int valido = convertir_valor(linea, &vars.items[i].valor);
             free(linea);
             if (valido) break;
-            fprintf(errores, "Valor inválido para %s; introduzca un número finito.\n", vars.items[i].nombre);
+            fprintf(errores, "Valor invalido para %s; introduzca un numero finito.\n", vars.items[i].nombre);
         }
     }
     ExprResultado resultado = evaluador_expr(ast, resolver_variable, &vars);
     if (!resultado.exito) {
-        fprintf(errores, "Error matemático: %s\n", resultado.error);
+        fprintf(errores, "Error matematico: %s\n", resultado.error);
         estado = 4;
         goto fin;
     }

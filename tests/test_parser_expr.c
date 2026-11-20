@@ -25,11 +25,11 @@ static void probar_validas(void) {
         ParserExpr p;
         parser_expr_init(&p, casos[i]);
         ASTExpr *e = parser_expr_parse(&p);
-        if (!e) fprintf(stderr, "Expresión válida rechazada: %s: %s\n", casos[i], p.error_msg);
+        if (!e) fprintf(stderr, "Expresion valida rechazada: %s: %s\n", casos[i], p.error_msg);
         assert(e && !p.has_error);
         parser_expr_destroy(&p);
     }
-    printf("OK parser matemático: %zu expresiones válidas\n", n);
+    printf("OK parser matematico: %zu expresiones validas\n", n);
 }
 
 static void probar_invalidas(void) {
@@ -43,12 +43,12 @@ static void probar_invalidas(void) {
         ParserExpr p;
         parser_expr_init(&p, casos[i]);
         ASTExpr *e = parser_expr_parse(&p);
-        if (e) fprintf(stderr, "Expresión inválida aceptada: %s\n", casos[i]);
+        if (e) fprintf(stderr, "Expresion invalida aceptada: %s\n", casos[i]);
         assert(!e && p.has_error);
-        assert(strstr(p.error_msg, "Línea ") && strstr(p.error_msg, "columna "));
+        assert(strstr(p.error_msg, "Linea ") && strstr(p.error_msg, "columna "));
         parser_expr_destroy(&p);
     }
-    printf("OK parser matemático: %zu expresiones inválidas\n", n);
+    printf("OK parser matematico: %zu expresiones invalidas\n", n);
 }
 
 static void probar_estructura(void) {
@@ -91,21 +91,21 @@ static void probar_estructura(void) {
     assert(e->as.call.args.count == 1 && e->as.call.args.items[0]->kind == EXPR_CALL);
     assert(strcmp(e->as.call.args.items[0]->as.call.callee, "cos") == 0);
     parser_expr_destroy(&p);
-    puts("OK parser matemático: precedencia y estructura");
+    puts("OK parser matematico: precedencia y estructura");
 }
 
 static void probar_errores(void) {
     struct Caso { const char *input; const char *mensaje; } casos[] = {
-        {"", "Línea 1, columna 1: se esperaba"},
+        {"", "Linea 1, columna 1: se esperaba"},
         {"sin()", "columna 5: se esperaba"},
         {"cos(x", "columna 6: se esperaba TOK-RPAR"},
         {"2**3", "columna 3: se esperaba"},
-        {"2 3", "columna 3: se esperaba fin de entrada, se encontró 3 (TOK-NUMBER)"},
-        {"sin(1,2)", "columna 6: error léxico: carácter ',' no válido"},
-        {"x+\n @", "Línea 2, columna 2: error léxico: carácter '@' no válido"},
-        {"5.", "columna 1: error léxico: número mal formado"}
+        {"2 3", "columna 3: se esperaba fin de entrada, se encontro 3 (TOK-NUMBER)"},
+        {"sin(1,2)", "columna 6: error lexico: caracter ',' no valido"},
+        {"x+\n @", "Linea 2, columna 2: error lexico: caracter '@' no valido"},
+        {"5.", "columna 1: error lexico: numero mal formado"}
     };
-    for (size_t i = 0; i < sizeof(casos) / sizeof(casos[0]); i++) {
+    for (size_t i = 0; i < sizeof(casos)/sizeof(casos[0]); i++) {
         ParserExpr p;
         parser_expr_init(&p, casos[i].input);
         assert(!parser_expr_parse(&p));
@@ -113,7 +113,7 @@ static void probar_errores(void) {
         assert(strstr(p.error_msg, casos[i].mensaje));
         parser_expr_destroy(&p);
     }
-    puts("OK parser matemático: diagnósticos");
+    puts("OK parser matematico: diagnosticos");
 }
 
 static void probar_profundidad(void) {
@@ -143,7 +143,7 @@ static void probar_profundidad(void) {
         else assert(!e && strstr(p.error_msg, "profundidad"));
         parser_expr_destroy(&p);
     }
-    puts("OK parser matemático: límite de profundidad");
+    puts("OK parser matematico: limite de profundidad");
 }
 
 int main(void) {

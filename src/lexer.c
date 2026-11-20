@@ -53,12 +53,6 @@ void lexer_init(Lexer *l, const char *texto) {
     l->error_msg = NULL;
     l->error_line = 0;
     l->error_col = 0;
-    l->modo = LEXER_TOY;
-}
-
-void lexer_init_matematico(Lexer *l, const char *texto) {
-    lexer_init(l, texto);
-    l->modo = LEXER_MATEMATICO;
 }
 
 void lexer_destroy(Lexer *l) {
@@ -68,10 +62,8 @@ void lexer_destroy(Lexer *l) {
     }
 }
 
-static int char_at(Lexer *l) {
-    if (l->i >= l->n) {
-        return -1;
-    }
+static int char_at(const Lexer *l) {
+    if (l->i >= l->n) return -1;
     return (unsigned char)l->texto[l->i];
 }
 
@@ -98,7 +90,7 @@ static int es_letra(int c) {
 
 static int es_digito(int c) {
     if (c == -1) return 0;
-    return (c >= '0' && c <= '9');
+    return c >= '0' && c <= '9';
 }
 
 static Token error_token(Lexer *l, int line, int col, const char *msg) {
@@ -122,23 +114,22 @@ static Token leer_identificador(Lexer *l) {
     while (1) {
         int c = char_at(l);
         if (c != -1 && (es_letra(c) || es_digito(c))) {
-            if (!buf_push(&buf, (char)c)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
+            if (!buf_push(&buf, (char)c)) {
+                buf_free(&buf);
+                return error_token(l, start_line, start_col, "memoria insuficiente");
+            }
             avanzar(l);
         } else {
             break;
         }
     }
 
-    TokenKind kind;
-    if (l->modo == LEXER_MATEMATICO) {
-        if (strcmp(buf.data, "sin") == 0) kind = TOK_SIN;
-        else if (strcmp(buf.data, "sen") == 0) kind = TOK_SEN;
-        else if (strcmp(buf.data, "cos") == 0) kind = TOK_COS;
-        else if (strcmp(buf.data, "tan") == 0) kind = TOK_TAN;
-        else kind = TOK_ID;
-    } else {
-        kind = token_lookup_keyword(buf.data);
-    }
+    TokenKind kind = TOK_ID;
+    if (strcmp(buf.data, "sin") == 0) kind = TOK_SIN;
+    else if (strcmp(buf.data, "sen") == 0) kind = TOK_SEN;
+    else if (strcmp(buf.data, "cos") == 0) kind = TOK_COS;
+    else if (strcmp(buf.data, "tan") == 0) kind = TOK_TAN;
+
     Token tok = token_create(kind, buf.data, start_line, start_col);
     buf_free(&buf);
     return tok;
@@ -153,34 +144,32 @@ static Token leer_numero(Lexer *l) {
     while (1) {
         int c = char_at(l);
         if (c != -1 && es_digito(c)) {
-            if (!buf_push(&buf, (char)c)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
+            if (!buf_push(&buf, (char)c)) {
+                buf_free(&buf);
+                return error_token(l, start_line, start_col, "memoria insuficiente");
+            }
             avanzar(l);
         } else {
             break;
         }
     }
 
-    int c = char_at(l);
-    if (c == '.') {
+    if (char_at(l) == '.') {
         avanzar(l);
-        int c2 = char_at(l);
-        if (c2 != -1 && es_digito(c2)) {
-            if (!buf_push(&buf, '.')) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
-            while (1) {
-                int c3 = char_at(l);
-                if (c3 != -1 && es_digito(c3)) {
-                    if (!buf_push(&buf, (char)c3)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
-                    avanzar(l);
-                } else {
-                    break;
-                }
+        if (!es_digito(char_at(l))) {
+            buf_free(&buf);
+            return error_token(l, start_line, start_col, "numero mal formado");
+        }
+        if (!buf_push(&buf, '.')) {
+            buf_free(&buf);
+            return error_token(l, start_line, start_col, "memoria insuficiente");
+        }
+        while (es_digito(char_at(l))) {
+            if (!buf_push(&buf, (char)char_at(l))) {
+                buf_free(&buf);
+                return error_token(l, start_line, start_col, "memoria insuficiente");
             }
-            Token tok = token_create(TOK_NUMBER, buf.data, start_line, start_col);
-            buf_free(&buf);
-            return tok;
-        } else {
-            buf_free(&buf);
-            return error_token(l, start_line, start_col, "número mal formado");
+            avanzar(l);
         }
     }
 
@@ -189,186 +178,40 @@ static Token leer_numero(Lexer *l) {
     return tok;
 }
 
-static Token leer_cadena(Lexer *l, char comilla) {
-    int start_line = l->line;
-    int start_col = l->col;
-    avanzar(l); /* consumir comilla inicial */
-
-    StrBuf buf;
-    if (!buf_init(&buf)) return error_token(l, start_line, start_col, "memoria insuficiente");
-
-    while (1) {
-        int c = char_at(l);
-        if (c == -1 || c == '\n') {
-            buf_free(&buf);
-            return error_token(l, start_line, start_col, "cadena sin cerrar");
-        }
-        if (c == comilla) {
-            avanzar(l); /* consumir comilla final */
-            break;
-        }
-        if (!buf_push(&buf, (char)c)) { buf_free(&buf); return error_token(l, start_line, start_col, "memoria insuficiente"); }
-        avanzar(l);
-    }
-
-    Token tok = token_create(TOK_STRING, buf.data, start_line, start_col);
-    buf_free(&buf);
-    return tok;
+static Token token_simple(Lexer *l, TokenKind kind, const char *lexema, int line, int col) {
+    avanzar(l);
+    return token_create(kind, lexema, line, col);
 }
 
 Token lexer_siguiente(Lexer *l) {
     while (1) {
         int c = char_at(l);
-        if (c == -1) {
-            return token_create(TOK_EOF, "", l->line, l->col);
-        }
-        if (c == ' ' || c == '\t' || c == '\r' || c == '\v' || c == '\f') {
+        if (c == -1) return token_create(TOK_EOF, "", l->line, l->col);
+        if (c == ' ' || c == '\t' || c == '\r' || c == '\v' || c == '\f' || c == '\n') {
             avanzar(l);
             continue;
-        }
-        if (c == '\n') {
-            avanzar(l);
-            continue;
-        }
-        if (l->modo == LEXER_MATEMATICO && !es_letra(c) && !es_digito(c) &&
-            !strchr("+-*/^().", c)) {
-            int start_line = l->line, start_col = l->col;
-            char err[64];
-            avanzar(l);
-            snprintf(err, sizeof(err), "carácter '%c' no válido", (char)c);
-            return error_token(l, start_line, start_col, err);
-        }
-        if (c == '-') {
-            int start_line = l->line;
-            int start_col = l->col;
-            avanzar(l);
-            int c2 = char_at(l);
-            if (c2 == '-' && l->modo == LEXER_TOY) {
-                avanzar(l);
-                while (1) {
-                    int cc = char_at(l);
-                    if (cc == -1 || cc == '\n') {
-                        break;
-                    }
-                    avanzar(l);
-                }
-                continue;
-            } else {
-                return token_create(TOK_MINUS, "-", start_line, start_col);
-            }
-        }
-        if (c == '+') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_PLUS, "+", start_line, start_col);
-        }
-        if (c == '*') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_MUL, "*", start_line, start_col);
-        }
-        if (c == '/') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_DIV, "/", start_line, start_col);
-        }
-        if (c == '%') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_MOD, "%", start_line, start_col);
-        }
-        if (c == '^') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_EXP, "^", start_line, start_col);
-        }
-        if (c == '(') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_LPAR, "(", start_line, start_col);
-        }
-        if (c == ')') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_RPAR, ")", start_line, start_col);
-        }
-        if (c == ',') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return token_create(TOK_COMMA, ",", start_line, start_col);
-        }
-        if (c == '.') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            return error_token(l, start_line, start_col, "carácter '.' no válido");
-        }
-        if (c == '>') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            int c2 = char_at(l);
-            if (c2 == '=') {
-                avanzar(l);
-                return token_create(TOK_GTE, ">=", start_line, start_col);
-            }
-            return token_create(TOK_GT, ">", start_line, start_col);
-        }
-        if (c == '<') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            int c2 = char_at(l);
-            if (c2 == '=') {
-                avanzar(l);
-                return token_create(TOK_LTE, "<=", start_line, start_col);
-            }
-            return token_create(TOK_LT, "<", start_line, start_col);
-        }
-        if (c == '=') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            int c2 = char_at(l);
-            if (c2 == '=') {
-                avanzar(l);
-                return token_create(TOK_EQ, "==", start_line, start_col);
-            }
-            return error_token(l, start_line, start_col, "'=' solo no es válido, use '==' o ':='");
-        }
-        if (c == '~') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            int c2 = char_at(l);
-            if (c2 == '=') {
-                avanzar(l);
-                return token_create(TOK_NEQ, "~=", start_line, start_col);
-            }
-            return token_create(TOK_NOT, "~", start_line, start_col);
-        }
-        if (c == ':') {
-            int start_line = l->line, start_col = l->col;
-            avanzar(l);
-            int c2 = char_at(l);
-            if (c2 == '=') {
-                avanzar(l);
-                return token_create(TOK_ASSIGN, ":=", start_line, start_col);
-            }
-            return error_token(l, start_line, start_col, "':' solo no es válido, use ':='");
-        }
-        if (c == '"') {
-            return leer_cadena(l, '"');
-        }
-        if (c == '\'') {
-            return leer_cadena(l, '\'');
-        }
-        if (es_letra(c)) {
-            return leer_identificador(l);
-        }
-        if (es_digito(c)) {
-            return leer_numero(l);
         }
 
-        int start_line = l->line, start_col = l->col;
+        int start_line = l->line;
+        int start_col = l->col;
+
+        if (es_letra(c)) return leer_identificador(l);
+        if (es_digito(c)) return leer_numero(l);
+
+        switch (c) {
+            case '+': return token_simple(l, TOK_PLUS, "+", start_line, start_col);
+            case '-': return token_simple(l, TOK_MINUS, "-", start_line, start_col);
+            case '*': return token_simple(l, TOK_MUL, "*", start_line, start_col);
+            case '/': return token_simple(l, TOK_DIV, "/", start_line, start_col);
+            case '^': return token_simple(l, TOK_EXP, "^", start_line, start_col);
+            case '(': return token_simple(l, TOK_LPAR, "(", start_line, start_col);
+            case ')': return token_simple(l, TOK_RPAR, ")", start_line, start_col);
+            default: break;
+        }
+
         avanzar(l);
         char err[64];
-        snprintf(err, sizeof(err), "carácter '%c' no válido", (char)c);
+        snprintf(err, sizeof(err), "caracter '%c' no valido", (char)c);
         return error_token(l, start_line, start_col, err);
     }
 }

@@ -52,6 +52,39 @@ static void valido_cercano(const char *entrada, double esperado) {
     assert(fabs(valor - esperado) <= 1e-12 * fmax(1.0, fabs(esperado)));
 }
 
+static void probar_casos_validacion(void) {
+    valido_cercano("sin(3.14/2)+cos(0)*2^2\n", sin(3.14/2.0) + 4.0);
+    valido_cercano("sin(x)+cos(y)\n0\n0\n", 1.0);
+    valido_cercano("sin(cos(x))+tan(y)/cos(x)\n0\n0\n", sin(1.0));
+    valido_cercano("cos(x)^2+sin(x)^2\n1\n", 1.0);
+    valido_cercano("sin(x)\n1\n", sin(1.0));
+    valido_cercano("cos(x+y)\n1\n2\n", cos(3.0));
+    valido_cercano("tan(x^2+sin(x))\n1\n", tan(1.0 + sin(1.0)));
+    valido("2+3*4\n", "Resultado: 14\n");
+    valido("8-3-1\n", "Resultado: 4\n");
+    valido("8/4/2\n", "Resultado: 1\n");
+    valido("2^3^2\n", "Resultado: 512\n");
+    valido("-2^2\n", "Resultado: -4\n");
+    valido("2^-2\n", "Resultado: 0.25\n");
+    valido("1--2\n", "Resultado: 3\n");
+    valido("x+x\n3\n", "Resultado: 6\n");
+    puts("OK consola: casos de validacion E01-E07 y A01-A08");
+}
+
+static void probar_invalidas(void) {
+    const char *casos[] = {
+        "sin()", "sin(x+)", "cos(x", "2+", "2**3",
+        "sin(1,2)", "foo(1)", "x(2)", "2 3", "sin(x) texto"
+    };
+    for (size_t i = 0; i < sizeof(casos)/sizeof(casos[0]); i++) {
+        char entrada[128];
+        snprintf(entrada, sizeof(entrada), "%s\n", casos[i]);
+        Ejecucion r = ejecutar(entrada);
+        assert(r.codigo == 2 && !strstr(r.salida, "Valor de"));
+    }
+    puts("OK consola: expresiones invalidas sin pedir variables");
+}
+
 int main(void) {
     assert(setlocale(LC_NUMERIC, "C"));
     Ejecucion r = ejecutar("2+3*4\n");
@@ -64,9 +97,9 @@ int main(void) {
     valido_cercano("cos(x)^2+sen(x)^2\n1\n", 1.0);
     valido_cercano("sin(cos(x))+tan(y)/cos(x)\n0\n0\n", sin(1.0));
     r = ejecutar("x+sin()\n3\n");
-    assert(r.codigo == 2 && strstr(r.errores, "Línea 1, columna") && !strstr(r.salida, "Valor de"));
+    assert(r.codigo == 2 && strstr(r.errores, "Linea 1, columna") && !strstr(r.salida, "Valor de"));
     r = ejecutar("x\n\nabc\n1.2junk\nnan\ninf\n1e9999\n -2.5 \n");
-    assert(r.codigo == 0 && contar(r.errores, "Valor inválido") == 6 && strstr(r.salida, "Resultado: -2.5\n"));
+    assert(r.codigo == 0 && contar(r.errores, "Valor invalido") == 6 && strstr(r.salida, "Resultado: -2.5\n"));
     r = ejecutar("x+y\n3\n");
     assert(r.codigo == 3 && strstr(r.errores, "Fin de entrada") && contar(r.salida, "Valor de y:") == 1);
     r = ejecutar("_variable_larga_123+_variable_larga_123+X+x\n2\n3\n4\n");
@@ -78,7 +111,7 @@ int main(void) {
     assert(r.codigo == 0 && contar(r.salida, "Valor de y:") == 1 && contar(r.salida, "Valor de x:") == 1);
     assert(strstr(r.salida, "Valor de y:") < strstr(r.salida, "Valor de x:"));
     r = ejecutar("1/0\n");
-    assert(r.codigo == 4 && strstr(r.errores, "División entre cero"));
+    assert(r.codigo == 4 && strstr(r.errores, "Division entre cero"));
     r = ejecutar("0^-1\n");
     assert(r.codigo == 4 && strstr(r.errores, "Potencia indefinida"));
     r = ejecutar("(-1)^0.5\n");
@@ -92,7 +125,9 @@ int main(void) {
     {
         char expresion[EXPR_PROFUNDIDAD_MAX * 2 + 8];
         for (int i = 0; i < EXPR_PROFUNDIDAD_MAX; i++) { expresion[2*i] = '1'; expresion[2*i+1] = '+'; }
-        expresion[2*EXPR_PROFUNDIDAD_MAX] = '1'; expresion[2*EXPR_PROFUNDIDAD_MAX+1] = '\n'; expresion[2*EXPR_PROFUNDIDAD_MAX+2] = '\0';
+        expresion[2*EXPR_PROFUNDIDAD_MAX] = '1';
+        expresion[2*EXPR_PROFUNDIDAD_MAX+1] = '\n';
+        expresion[2*EXPR_PROFUNDIDAD_MAX+2] = '\0';
         r = ejecutar(expresion);
         assert(r.codigo != 0 && strstr(r.errores, "profundidad"));
     }
@@ -113,6 +148,8 @@ int main(void) {
         largo[sizeof(largo)-3] = '7'; largo[sizeof(largo)-2] = '\n'; largo[sizeof(largo)-1] = '\0';
         valido(largo, "Resultado: 7\n");
     }
+    probar_casos_validacion();
+    probar_invalidas();
     puts("OK consola: expresiones, variables, reintentos, EOF y errores");
     return 0;
 }

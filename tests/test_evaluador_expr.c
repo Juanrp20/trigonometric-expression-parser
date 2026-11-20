@@ -57,7 +57,7 @@ static void probar_aritmetica_y_trigonometria(void) {
         cercano(casos[i].texto, NULL, casos[i].valor);
     ExprResultado ejemplo = calcular("sin(3.14/2)+cos(0)*2^2", NULL);
     assert(ejemplo.exito && fabs(ejemplo.valor - 5.0) < 0.000001);
-    printf("OK aritmética y trigonometría: %zu casos (ejemplo = %.15g)\n",
+    printf("OK aritmetica y trigonometria: %zu casos (ejemplo = %.15g)\n",
            sizeof(casos)/sizeof(casos[0]), ejemplo.valor);
 }
 
@@ -67,6 +67,9 @@ static void probar_variables(void) {
     cercano("x+x", &vars, 6.0);
     entradas[0].valor = 0.0;
     cercano("sin(x)+cos(y)", &vars, 1.0);
+    cercano("sin(cos(x))+tan(y)/cos(x)", &vars, sin(1.0));
+    entradas[0].valor = 1.0;
+    cercano("tan(x^2+sin(x))", &vars, tan(1.0 + sin(1.0)));
     const double valores[] = {-7.0, -1.0, 0.0, 0.5, 3.14, 100.0};
     for (size_t i = 0; i < sizeof(valores)/sizeof(valores[0]); i++) {
         entradas[0].valor = valores[i];
@@ -91,12 +94,12 @@ static void probar_variables(void) {
     error_esperado("x", &vars, "Valor no finito de variable: x");
     entradas[0].valor = NAN;
     error_esperado("x", &vars, "Valor no finito de variable: x");
-    puts("OK variables e identidad trigonométrica");
+    puts("OK variables e identidad trigonometrica");
 }
 
 static void probar_errores(void) {
-    error_esperado("1/0", NULL, "División entre cero");
-    error_esperado("1/-0", NULL, "División entre cero");
+    error_esperado("1/0", NULL, "Division entre cero");
+    error_esperado("1/-0", NULL, "Division entre cero");
     error_esperado("0^-1", NULL, "Potencia indefinida");
     error_esperado("(-1)^0.5", NULL, "Potencia fuera del dominio real");
     error_esperado("10^1000", NULL, "Potencia fuera de rango");
@@ -104,19 +107,19 @@ static void probar_errores(void) {
     char numero[401];
     memset(numero, '9', sizeof(numero) - 1);
     numero[sizeof(numero) - 1] = '\0';
-    error_esperado(numero, NULL, "Literal numérico fuera de rango");
+    error_esperado(numero, NULL, "Literal numerico fuera de rango");
     char pequeno[405] = "0.";
     memset(pequeno + 2, '0', 400);
     pequeno[402] = '1';
     pequeno[403] = '\0';
-    error_esperado(pequeno, NULL, "Literal numérico fuera de rango");
+    error_esperado(pequeno, NULL, "Literal numerico fuera de rango");
 
     ASTExpr no_admitido = {0};
-    no_admitido.kind = EXPR_STRING;
+    no_admitido.kind = (ASTExprKind)999;
     ExprResultado r = evaluador_expr(&no_admitido, NULL, NULL);
     assert(!r.exito && strstr(r.error, "Tipo de nodo no admitido"));
     r = evaluador_expr(NULL, NULL, NULL);
-    assert(!r.exito && strstr(r.error, "Nodo de expresión ausente"));
+    assert(!r.exito && strstr(r.error, "Nodo de expresion ausente"));
     ASTExpr operacion = {0};
     operacion.kind = EXPR_BINARY;
     operacion.as.binary.op_str = "TOK-MOD";
@@ -126,7 +129,7 @@ static void probar_errores(void) {
     llamada.kind = EXPR_CALL;
     llamada.as.call.callee = "otra";
     r = evaluador_expr(&llamada, NULL, NULL);
-    assert(!r.exito && strstr(r.error, "Función no admitida"));
+    assert(!r.exito && strstr(r.error, "Funcion no admitida"));
     llamada.as.call.callee = "sin";
     r = evaluador_expr(&llamada, NULL, NULL);
     assert(!r.exito && strstr(r.error, "requiere un argumento"));
@@ -134,8 +137,8 @@ static void probar_errores(void) {
     numero_invalido.kind = EXPR_NUMBER;
     numero_invalido.as.str_val = "12x";
     r = evaluador_expr(&numero_invalido, NULL, NULL);
-    assert(!r.exito && strstr(r.error, "Literal numérico inválido"));
-    puts("OK errores matemáticos y nodos no admitidos");
+    assert(!r.exito && strstr(r.error, "Literal numerico invalido"));
+    puts("OK errores matematicos y nodos no admitidos");
 }
 
 static void probar_arbol_profundo(void) {
@@ -145,10 +148,10 @@ static void probar_arbol_profundo(void) {
     }
     expresion[2*EXPR_PROFUNDIDAD_MAX] = '1';
     expresion[2*EXPR_PROFUNDIDAD_MAX+1] = '\0';
-    error_esperado(expresion, NULL, "Profundidad máxima del AST");
+    error_esperado(expresion, NULL, "Profundidad maxima del AST");
     expresion[2*(EXPR_PROFUNDIDAD_MAX-1)-1] = '\0';
     cercano(expresion, NULL, EXPR_PROFUNDIDAD_MAX - 1);
-    puts("OK evaluador: límite de profundidad del AST");
+    puts("OK evaluador: limite de profundidad del AST");
 }
 
 int main(void) {

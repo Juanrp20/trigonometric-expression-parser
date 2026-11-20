@@ -1,5 +1,6 @@
 #include "evaluador_expr.h"
 #include "expr_limites.h"
+#include "token.h"
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -20,19 +21,19 @@ static int fallo(Evaluador *e, const char *mensaje, const char *detalle) {
 
 static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor, size_t profundidad) {
     double izquierda, derecha, resultado;
-    if (profundidad > EXPR_PROFUNDIDAD_MAX) return fallo(e, "Profundidad máxima del AST excedida", NULL);
-    if (!expr) return fallo(e, "Nodo de expresión ausente", NULL);
+    if (profundidad > EXPR_PROFUNDIDAD_MAX) return fallo(e, "Profundidad maxima del AST excedida", NULL);
+    if (!expr) return fallo(e, "Nodo de expresion ausente", NULL);
 
     switch (expr->kind) {
         case EXPR_NUMBER: {
             char *fin;
-            if (!expr->as.str_val) return fallo(e, "Literal numérico ausente", NULL);
+            if (!expr->as.str_val) return fallo(e, "Literal numerico ausente", NULL);
             errno = 0;
             resultado = strtod(expr->as.str_val, &fin);
             if (fin == expr->as.str_val || *fin != '\0')
-                return fallo(e, "Literal numérico inválido", expr->as.str_val);
+                return fallo(e, "Literal numerico invalido", expr->as.str_val);
             if (errno == ERANGE || !isfinite(resultado))
-                return fallo(e, "Literal numérico fuera de rango", expr->as.str_val);
+                return fallo(e, "Literal numerico fuera de rango", expr->as.str_val);
             *valor = resultado;
             return 1;
         }
@@ -64,7 +65,7 @@ static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor, size_t prof
             else if (strcmp(op, token_kind_to_str(TOK_MINUS)) == 0) resultado = izquierda - derecha;
             else if (strcmp(op, token_kind_to_str(TOK_MUL)) == 0) resultado = izquierda * derecha;
             else if (strcmp(op, token_kind_to_str(TOK_DIV)) == 0) {
-                if (derecha == 0.0) return fallo(e, "División entre cero", NULL);
+                if (derecha == 0.0) return fallo(e, "Division entre cero", NULL);
                 resultado = izquierda / derecha;
             } else {
                 if (izquierda == 0.0 && derecha < 0.0)
@@ -80,19 +81,19 @@ static int evaluar(Evaluador *e, const ASTExpr *expr, double *valor, size_t prof
         }
         case EXPR_CALL: {
             const char *nombre = expr->as.call.callee;
-            if (!nombre) return fallo(e, "Nombre de función ausente", NULL);
+            if (!nombre) return fallo(e, "Nombre de funcion ausente", NULL);
             if (strcmp(nombre, "sin") != 0 && strcmp(nombre, "sen") != 0 &&
                 strcmp(nombre, "cos") != 0 && strcmp(nombre, "tan") != 0)
-                return fallo(e, "Función no admitida", nombre);
+                return fallo(e, "Funcion no admitida", nombre);
             if (expr->as.call.args.count != 1 || !expr->as.call.args.items)
-                return fallo(e, "La función requiere un argumento", nombre);
+                return fallo(e, "La funcion requiere un argumento", nombre);
             if (!evaluar(e, expr->as.call.args.items[0], &izquierda, profundidad + 1)) return 0;
             errno = 0;
             if (strcmp(nombre, "sin") == 0 || strcmp(nombre, "sen") == 0) resultado = sin(izquierda);
             else if (strcmp(nombre, "cos") == 0) resultado = cos(izquierda);
             else resultado = tan(izquierda);
             if (errno == EDOM || errno == ERANGE || !isfinite(resultado))
-                return fallo(e, "Resultado trigonométrico inválido o fuera de rango", nombre);
+                return fallo(e, "Resultado trigonometrico invalido o fuera de rango", nombre);
             *valor = resultado;
             return 1;
         }

@@ -1,6 +1,6 @@
 # Casos de prueba y validación matemática
 
-Resultados obtenidos con `calculadora_expr` en Linux, GCC 13.3.0 y `double`, ejecutando `python3 tests/validacion_final.py`. Las referencias numéricas se calcularon independientemente con `math` de Python. Se comparó con tolerancia relativa y absoluta de `1e-12`; Python y C pueden usar la misma biblioteca matemática del sistema, por lo que esta comprobación no es una implementación independiente de las funciones trascendentes. Las entradas para variables aparecen en el orden en que la consola las solicita.
+Resultados obtenidos con `calculadora_expr` y verificados por la suite C `tests/test_consola_expr.c`. El entorno de referencia es GCC 13.3.0 con `double`. Las comparaciones usan tolerancia relativa y absoluta de `1e-12`. Las entradas para variables aparecen en el orden en que la consola las solicita.
 
 | ID | Expresión | Variables | Esperado | Obtenido | Validación matemática | Estado |
 |---|---|---|---:|---:|---|---|
@@ -22,7 +22,7 @@ Resultados obtenidos con `calculadora_expr` en Linux, GCC 13.3.0 y `double`, eje
 
 E01 es aproximadamente `4.99999968293183`, no exactamente 5, porque `3.14` aproxima π; la referencia usa `sin(1.57)`.
 
-La identidad `cos(x)^2+sin(x)^2 ≈ 1` se ejecutó con x = −7, −1, 0, 0.5, 3.14 y 100. Los resultados impresos fueron respectivamente `0.99999999999999989`, `1`, `1`, `1`, `0.99999999999999989` y `0.99999999999999989`; todos cumplen la tolerancia.
+La identidad `cos(x)^2+sin(x)^2 ≈ 1` se ejecutó con x = −7, −1, 0, 0.5, 3.14 y 100. Los resultados cumplen la tolerancia indicada.
 
 | ID | Entrada | Esperado | Obtenido | Validación | Estado |
 |---|---|---|---|---|---|
@@ -41,15 +41,14 @@ La identidad `cos(x)^2+sin(x)^2 ≈ 1` se ejecutó con x = −7, −1, 0, 0.5, 3
 | M03 | `(-1)^0.5` | error matemático | código 4, dominio real | raíz real de negativo | Pasa |
 | M04 | `10^1000` | error matemático | código 4, fuera de rango | desbordamiento | Pasa |
 
-La suite C además prueba `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos y diferencias entre mayúsculas y minúsculas. La compilación limpia y todas las pruebas con AddressSanitizer y UBSan pasaron con `ASAN_OPTIONS=detect_leaks=0`. LeakSanitizer falló bajo `ptrace`; no se comprobó ausencia de fugas. No se midió cobertura.
+Las suites C cubren además `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos, diferencias entre mayúsculas y minúsculas, límites de profundidad y errores del verificador LL(1).
 
-Las pruebas adicionales verifican el rechazo de gramáticas vacías, mal formadas y con no terminales indefinidos, el límite de 128 niveles para negaciones, paréntesis y potencias, árboles asociativos demasiado profundos y un fallo de reserva por tamaño no representable. `tests/test_ll1_cli.py` prueba los códigos de salida. `tests/test_memoria_fallos.c` inyecta fallos de `malloc` y `realloc` en lexer y arena de ambos parsers usando `--wrap` de GNU ld; se ejecutó en Linux con ASan y UBSan y `detect_leaks=0`.
-
-En el verificador LL(1), `ASAN_OPTIONS=detect_leaks=0 make test-ll1-memoria` inyectó individualmente fallos en 85 reservas del análisis de una gramática, 470 de una gramática más grande, 84 del cálculo, 35 de conflictos, 206 de la CLI con conflictos y 121 de la CLI sin conflictos. El contador de reservas instrumentadas terminó en cero tras cada intento; LeakSanitizer no pudo ejecutarse y esto no prueba la ausencia general de fugas.
-
-Para repetir la inyección en Linux con GCC y GNU ld:
+Para reproducir la validación:
 
 ```sh
-gcc -Wall -Wextra -Werror -std=c99 -pedantic -Iinclude -g -fsanitize=address,undefined -Wl,--wrap=malloc -Wl,--wrap=realloc -o /tmp/tarea3_fallos_memoria src/token.c src/lexer.c src/arena.c src/ast.c src/parser_expr.c src/parser.c tests/test_memoria_fallos.c
-ASAN_OPTIONS=detect_leaks=0 /tmp/tarea3_fallos_memoria
+make clean
+make all
+make test
 ```
+
+En Windows: `build.bat all` y `build.bat test`. No se midió cobertura.

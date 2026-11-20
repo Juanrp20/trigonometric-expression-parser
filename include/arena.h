@@ -1,5 +1,5 @@
-#ifndef TOY_ARENA_H
-#define TOY_ARENA_H
+#ifndef EXPR_ARENA_H
+#define EXPR_ARENA_H
 
 #include <stddef.h>
 #include <setjmp.h>
@@ -18,4 +18,4 @@ void *arena_alloc(Arena *a, size_t size);
 char *arena_strdup(Arena *a, const char *str);
 void arena_free(Arena *a);
 
-#endif /* TOY_ARENA_H */
+#endif /* EXPR_ARENA_H */

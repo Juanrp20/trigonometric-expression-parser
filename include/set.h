@@ -1,5 +1,5 @@
-#ifndef TOY_SET_H
-#define TOY_SET_H
+#ifndef EXPR_SET_H
+#define EXPR_SET_H
 
 #include <stddef.h>
 
@@ -9,7 +9,7 @@ typedef struct {
     size_t capacity;
 } StringSet;
 
-/* -1: error, 0: sin cambios, 1: se insertó al menos un elemento. */
+/* -1: error, 0: sin cambios, 1: se inserto al menos un elemento. */
 enum { SET_ERROR = -1, SET_SIN_CAMBIOS = 0, SET_CAMBIO = 1 };
 
 void set_init(StringSet *s);
@@ -22,4 +22,4 @@ int set_is_subset(const StringSet *sub, const StringSet *parent);
 void set_clear(StringSet *s);
 void set_free(StringSet *s);
 
-#endif /* TOY_SET_H */
+#endif /* EXPR_SET_H */

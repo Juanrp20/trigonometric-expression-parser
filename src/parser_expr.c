@@ -6,13 +6,13 @@ static void error(ParserExpr *p, const char *esperado) {
     p->has_error = 1;
     if (p->la.kind == TOK_ERROR) {
         snprintf(p->error_msg, sizeof(p->error_msg),
-                 "Línea %d, columna %d: error léxico: %s",
+                 "Linea %d, columna %d: error lexico: %s",
                  p->la.line, p->la.col, p->la.lexeme ? p->la.lexeme : "memoria insuficiente");
     } else {
         const char *encontrado = p->la.lexeme && p->la.lexeme[0]
                                      ? p->la.lexeme : token_kind_to_str(p->la.kind);
         snprintf(p->error_msg, sizeof(p->error_msg),
-                 "Línea %d, columna %d: se esperaba %s, se encontró %s (%s)",
+                 "Linea %d, columna %d: se esperaba %s, se encontro %s (%s)",
                  p->la.line, p->la.col, esperado, encontrado,
                  token_kind_to_str(p->la.kind));
     }
@@ -35,9 +35,9 @@ static int es_funcion(TokenKind k) {
     return k == TOK_SIN || k == TOK_SEN || k == TOK_COS || k == TOK_TAN;
 }
 
-/* <Funcion>: los cuatro nombres se conservan para la futura evaluación. */
+/* <Funcion>: los cuatro nombres se conservan para la futura evaluacion. */
 static const char *funcion(ParserExpr *p) {
-    if (!es_funcion(p->la.kind)) error(p, "función trigonométrica");
+    if (!es_funcion(p->la.kind)) error(p, "funcion trigonometrica");
     const char *nombre = arena_strdup(&p->arena, p->la.lexeme);
     comer(p, p->la.kind);
     return nombre;
@@ -69,11 +69,11 @@ static ASTExpr *primario(ParserExpr *p) {
         ast_expr_list_push(&p->arena, &args, argumento);
         return ast_expr_call(&p->arena, nombre, args);
     }
-    error(p, "número, identificador, '(' o función");
+    error(p, "numero, identificador, '(' o funcion");
     return NULL;
 }
 
-/* <Potencia>: el exponente vuelve a <Unario>, con asociación derecha. */
+/* <Potencia>: el exponente vuelve a <Unario>, con asociacion derecha. */
 static ASTExpr *potencia(ParserExpr *p) {
     ASTExpr *nodo = primario(p);
     if (p->la.kind == TOK_EXP) {
@@ -88,7 +88,7 @@ static ASTExpr *potencia(ParserExpr *p) {
 static ASTExpr *unario(ParserExpr *p) {
     if (++p->profundidad > EXPR_PROFUNDIDAD_MAX) {
         p->has_error = 1;
-        snprintf(p->error_msg, sizeof(p->error_msg), "Línea %d, columna %d: profundidad sintáctica máxima (%d) excedida", p->la.line, p->la.col, EXPR_PROFUNDIDAD_MAX);
+        snprintf(p->error_msg, sizeof(p->error_msg), "Linea %d, columna %d: profundidad sintactica maxima (%d) excedida", p->la.line, p->la.col, EXPR_PROFUNDIDAD_MAX);
         longjmp(p->jmp_env, 1);
     }
     ASTExpr *resultado;
@@ -126,7 +126,7 @@ static ASTExpr *expr(ParserExpr *p) {
 }
 
 void parser_expr_init(ParserExpr *p, const char *texto) {
-    lexer_init_matematico(&p->lexer, texto);
+    lexer_init(&p->lexer, texto);
     arena_init(&p->arena);
     p->la.kind = TOK_EOF;
     p->la.lexeme = NULL;
@@ -137,7 +137,7 @@ void parser_expr_init(ParserExpr *p, const char *texto) {
     p->error_msg[0] = '\0';
 }
 
-/* <Inicio>: además de <Expr>, exige que no quede entrada sin consumir. */
+/* <Inicio>: ademas de <Expr>, exige que no quede entrada sin consumir. */
 ASTExpr *parser_expr_parse(ParserExpr *p) {
     if (setjmp(p->jmp_env) != 0) {
         arena_set_error_destino(&p->arena, NULL);

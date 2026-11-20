@@ -38,7 +38,7 @@ Fecha: & 21 de noviembre de 2026 \\
 \section{Introducción}
 El trabajo aborda el reconocimiento y evaluación de expresiones que combinan números reales, variables simbólicas, operaciones aritméticas y funciones trigonométricas. La cadena de procesamiento separa la identificación de símbolos, la validación de su estructura y el cálculo de su significado numérico. Esta separación permite detectar errores antes de solicitar valores y facilita la comprobación de cada componente.
 
-La implementación se desarrolló en C99 a partir de la Tarea 2, reutilizando partes del lenguaje Toy sin eliminar sus programas ni sus pruebas. La sintaxis matemática tiene una gramática independiente y un lexer en modo específico.
+La implementación está escrita en C99 y contiene solo los componentes del Trabajo Práctico 3: lexer, parser descendente, AST, evaluador, consola y verificador LL(1) de la gramática matemática.
 \section{Objetivos}
 \textbf{Objetivo general.} Diseñar e implementar un reconocedor LL(1) y evaluador de expresiones aritméticas y trigonométricas con resultados \texttt{double}.
 
@@ -59,9 +59,9 @@ Los no terminales se escriben entre ángulos. Los terminales son \texttt{NUMBER}
 
 La precedencia aumenta desde suma y resta, multiplicación y división, negación unaria, hasta potencia y primarios. Las primeras operaciones se agrupan por la izquierda. La potencia se agrupa por la derecha: \verb|2^3^2| equivale a \verb|2^(3^2)|. La potencia precede a la negación: \verb|-2^2| equivale a \verb|-(2^2)|; también se admite \verb|2^-2|. Los paréntesis alteran el agrupamiento. \texttt{sen} es un alias de \texttt{sin}; todas las funciones reciben una expresión entre paréntesis y operan en radianes.
 \section{Verificación LL(1)}
-El verificador heredado expande opciones y repeticiones a producciones auxiliares, calcula anulabilidad, PRIMERO y SIGUIENTE por punto fijo y compara los conjuntos de selección de las alternativas. La orden \verb|./toy_ll1 gramatica/expresiones_matematicas.txt --sets| produjo \texttt{ninguno}, es decir, cero conflictos detectados. Se presupone la clasificación léxica disjunta de las funciones e \texttt{ID}.
+El verificador \texttt{verificar\_ll1} expande opciones y repeticiones a producciones auxiliares, calcula anulabilidad, PRIMERO y SIGUIENTE por punto fijo y compara los conjuntos de selección de las alternativas. La orden \verb|./verificar_ll1 gramatica/expresiones_matematicas.txt --sets| produjo \texttt{ninguno}, es decir, cero conflictos detectados. Se presupone la clasificación léxica disjunta de las funciones e \texttt{ID}.
 
-El programa devuelve 0 sin conflictos, 1 ante conflictos o errores de lectura, 2 para una gramática vacía o mal formada y 3 ante un fallo de reserva o tamaño no representable. La gramática original de Toy sigue presentando dos conflictos y devuelve código 1. Los fallos de memoria interrumpen el análisis y liberan las estructuras parciales.
+El programa devuelve 0 sin conflictos, 1 ante conflictos o errores de lectura, 2 para una gramática vacía o mal formada y 3 ante un fallo de reserva o tamaño no representable. Los fallos de memoria interrumpen el análisis y liberan las estructuras parciales. La suite \texttt{test\_ll1} comprueba mediante la API C la gramática matemática, las gramáticas inválidas y la detección de conflictos.
 
 Los conjuntos principales obtenidos son los siguientes. Se escribe \texttt{\$} para fin de entrada y F para \{sin, sen, cos, tan\}.
 \begin{center}
@@ -78,11 +78,11 @@ Funcion & F & \{ ( \} \\\bottomrule
 \end{center}
 Las alternativas de primario tienen comienzos distintos, y los conjuntos de selección de las reglas auxiliares son disjuntos. La tabla predictiva completa no es necesaria para el reconocedor recursivo utilizado.
 \section{Análisis léxico}
-\texttt{lexer\_init\_matematico} selecciona el modo matemático; \texttt{lexer\_init} conserva Toy. El lector reconoce operadores, paréntesis, números, identificadores y las cuatro funciones, con línea y columna. Los enteros y decimales de una expresión siguen el patrón \verb|[0-9]+(\.[0-9]+)?|; no se aceptan \texttt{.5}, \texttt{5.} ni exponentes en literales de expresión. Los identificadores admiten letras ASCII, dígitos tras el primer carácter y guion bajo. El reconocimiento de máxima coincidencia distingue \texttt{sin} de \texttt{sinus}. En modo matemático \verb|--| son dos signos negativos, no un comentario. Un carácter inválido o un decimal mal formado produce un token de error.
+\texttt{lexer\_init} configura el único modo matemático. El lector reconoce operadores, paréntesis, números, identificadores y las cuatro funciones, con línea y columna. Los enteros y decimales de una expresión siguen el patrón \verb|[0-9]+(\.[0-9]+)?|; no se aceptan \texttt{.5}, \texttt{5.} ni exponentes en literales de expresión. Los identificadores admiten letras ASCII, dígitos tras el primer carácter y guion bajo. El reconocimiento de máxima coincidencia distingue \texttt{sin} de \texttt{sinus}. La secuencia \verb|--| son dos signos negativos, no un comentario. Un carácter inválido o un decimal mal formado produce un token de error.
 \section{Análisis sintáctico}
 \texttt{parser\_expr.c} utiliza un token de preanálisis. Las funciones \texttt{expr}, \texttt{termino}, \texttt{unario}, \texttt{potencia}, \texttt{primario} y \texttt{funcion} corresponden a las reglas de la gramática. Los bucles de suma y producto construyen nodos sucesivos por la izquierda; la recursión del exponente construye el subárbol derecho. El punto de entrada exige EOF. Los errores informan posición, token encontrado y elemento esperado cuando corresponde. Se rechazan, entre otros, \texttt{sin()}, \texttt{2+} y texto sobrante.
 \section{Árbol de sintaxis abstracta}
-Se reutiliza \texttt{ASTExpr} de Toy: número e identificador guardan su texto; los paréntesis y la negación contienen un hijo; el binario contiene operador e hijos; la llamada contiene nombre y argumentos. Por ejemplo, \verb|2+3*4| produce una suma cuyo hijo derecho es una multiplicación. Los operadores se almacenan como cadenas tales como \texttt{TOK-PLUS} y \texttt{TOK-EXP}. La arena y los nodos pertenecen al parser y son válidos hasta \texttt{parser\_expr\_destroy}.
+El tipo \texttt{ASTExpr} modela número e identificador con su texto; los paréntesis y la negación contienen un hijo; el binario contiene operador e hijos; la llamada contiene nombre y argumentos. Por ejemplo, \verb|2+3*4| produce una suma cuyo hijo derecho es una multiplicación. Los operadores se almacenan como cadenas tales como \texttt{TOK-PLUS} y \texttt{TOK-EXP}. La arena y los nodos pertenecen al parser y son válidos hasta \texttt{parser\_expr\_destroy}.
 \section{Evaluación semántica}
 El evaluador recorre el AST sin modificarlo: convierte números con \texttt{strtod}, consulta variables mediante un callback, evalúa hijos recursivamente y aplica el operador o función correspondiente. Usa \texttt{double}, \texttt{pow}, \texttt{sin}, \texttt{cos} y \texttt{tan}; verifica conversión, rango, dominio, división por cero y valores no finitos. El resultado distingue explícitamente éxito y error.
 
@@ -91,8 +91,10 @@ El enunciado propone calcular durante el descenso sintáctico. El diseño acorda
 El descenso sintáctico tiene un límite de 128 niveles de \texttt{<Unario>}; la recolección de variables y la evaluación tienen un límite independiente de 128 nodos de profundidad en el AST. Al superar cualquiera se informa un error controlado.
 \section{Interfaz de consola}
 \texttt{calculadora\_expr} fija \texttt{LC\_NUMERIC} en \texttt{C}, lee una expresión por línea y la analiza. Si es válida, recorre el AST de izquierda a derecha, registra cada variable distinta y solicita su valor una sola vez. Los valores inválidos permiten reintento; EOF termina la ejecución. Después evalúa y muestra el resultado. Se liberan la lista de variables, la arena del parser y la línea. Los valores de variables se convierten con \texttt{strtod} y admiten signo y notación científica, a diferencia de los literales de la gramática.
+
+La compilación usa solo C99 y la biblioteca estándar. En Linux se emplea \texttt{make}; en Windows se emplea \texttt{build.bat} con MinGW-w64/GCC desde \texttt{cmd}. El script no requiere interpretes, MSYS shell ni enlazadores GNU. Los mensajes de ejecución son ASCII para evitar dependencias de la pagina de codigos de consola.
 \section{Casos de prueba y resultados}
-Se ejecutaron los siete ejemplos del enunciado con el programa de consola y se compararon con referencias calculadas con \texttt{math} de Python, mediante tolerancia absoluta y relativa de $10^{-12}$. Python y C pueden compartir la biblioteca matemática del sistema. Los resultados siguientes son los observados, redondeados a 15 cifras; el documento \texttt{casos\_prueba\_validacion.md} contiene los valores con mayor precisión y más pruebas.
+Se ejecutaron los siete ejemplos del enunciado con el programa de consola y se verificaron mediante la suite C \texttt{test\_consola\_expr}, con tolerancia absoluta y relativa de $10^{-12}$. Las referencias se calculan con la biblioteca matemática de C y con identidades analíticas. Los resultados siguientes son los observados, redondeados a 15 cifras; el documento \texttt{casos\_prueba\_validacion.md} contiene los valores con mayor precisión y más pruebas.
 \begin{longtable}{p{5.7cm}p{2.5cm}p{3.8cm}l}\toprule
 Expresión & Variables & Resultado & Estado \\\midrule\endhead
 \verb|sin(3.14/2)+cos(0)*2^2| & -- & 4.99999968293183 & Pasa \\
@@ -116,15 +118,15 @@ Entrada & Resultado observado & Estado \\\midrule
 \texttt{sin(1,2)} & Error léxico, código 2 & Pasa \\
 \texttt{1/0}, \verb|0^-1| & Error matemático, código 4 & Pasa \\
 \verb|(-1)^0.5|, \verb|10^1000| & Dominio o rango, código 4 & Pasa \\\bottomrule\end{tabular}\end{center}
-Se ejecutaron \texttt{make clean}, \texttt{make all} y \texttt{ASAN\_OPTIONS=detect\_leaks=0 make test}, además de compilar con \texttt{-Werror}. Pasaron las regresiones de Toy y las pruebas del lexer, parser, evaluador y consola con AddressSanitizer y UBSan. LeakSanitizer falló por la restricción \texttt{ptrace} del entorno: no se verificó ausencia de fugas. No se midió cobertura.
+Se ejecutaron \texttt{make clean}, \texttt{make all} y \texttt{make test} con \texttt{-Werror}. Pasaron las cuatro suites C: parser, evaluador, consola y verificador LL(1). La verificación de Windows se realiza con \texttt{build.bat all} y \texttt{build.bat test}; el entorno de este informe no dispone de MinGW para ejecutarla. No se midió cobertura.
 \section{Conclusiones}
-Se obtuvo un reconocedor LL(1), un AST y un evaluador numérico integrados en una consola. La separación de fases permitió reutilizar componentes de Toy, identificar errores y verificar la precedencia mediante la estructura del árbol. Se conservaron las regresiones existentes.
+Se obtuvo un reconocedor LL(1), un AST y un evaluador numérico integrados en una consola. La separación de fases permitió identificar errores, verificar la precedencia mediante la estructura del árbol y mantener un único conjunto de pruebas C portable.
 
-Las limitaciones incluyen una expresión por ejecución, multiplicación explícita, literales de expresión sin notación científica y los límites explícitos de profundidad. El verificador LL(1) se probó mediante inyección de fallos en sus reservas; los demás componentes heredados no se han sometido exhaustivamente a dicha inyección. Los errores \texttt{ERANGE} se rechazan también en subdesbordamiento; no se aplican tolerancias arbitrarias a singularidades de la tangente.
+Las limitaciones incluyen una expresión por ejecución, multiplicación explícita, literales de expresión sin notación científica y los límites explícitos de profundidad. Los errores \texttt{ERANGE} se rechazan también en subdesbordamiento; no se aplican tolerancias arbitrarias a singularidades de la tangente.
 \section{Referencias}
 \begin{enumerate}
 \item Enunciado suministrado: \texttt{docs/compiladores\_trabajo\_pr\_ctico\_3.md}.
 \item Implementación y documentación del repositorio: \path{gramatica/expresiones_matematicas.txt}, \path{src/}, \path{tests/} y \path{docs/gramatica_expresiones_matematicas.md}.
-\item Resultados experimentales reproducibles: \path{tests/validacion_final.py} y \path{docs/casos_prueba_validacion.md}.
+\item Resultados experimentales reproducibles: \path{tests/} y \path{docs/casos_prueba_validacion.md}.
 \end{enumerate}
 \end{document}

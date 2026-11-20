@@ -1,5 +1,5 @@
-#ifndef TOY_LL1_H
-#define TOY_LL1_H
+#ifndef EXPR_LL1_H
+#define EXPR_LL1_H
 
 #include "set.h"
 #include <stddef.h>
@@ -47,8 +47,8 @@ typedef struct {
 
 void ll1_grammar_init(LL1Grammar *g);
 int ll1_grammar_parse(LL1Grammar *g, const char *ebnf_text);
-/* parse: 1 éxito, 0 sintaxis, -1 memoria; calculate/conflicts: 1 éxito, 0 error.
-   Tras un error, liberar la gramática; los conjuntos parciales no son válidos. */
+/* parse: 1 exito, 0 sintaxis, -1 memoria; calculate/conflicts: 1 exito, 0 error.
+   Tras un error, liberar la gramatica; los conjuntos parciales no son validos. */
 int ll1_grammar_calculate(LL1Grammar *g);
 int ll1_grammar_find_conflicts(LL1Grammar *g, LL1ConflictList *confs);
 void ll1_grammar_free(LL1Grammar *g);
@@ -56,4 +56,4 @@ void ll1_grammar_free(LL1Grammar *g);
 void ll1_conflicts_init(LL1ConflictList *list);
 void ll1_conflicts_free(LL1ConflictList *list);
 
-#endif /* TOY_LL1_H */
+#endif /* EXPR_LL1_H */

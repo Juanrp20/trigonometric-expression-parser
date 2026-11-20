@@ -29,7 +29,7 @@ static char *read_entire_file(const char *path, int *estado) {
     return buf;
 }
 
-static void print_set_python_style(const StringSet *s) {
+static void imprimir_conjunto(const StringSet *s) {
     printf("[");
     for (size_t i = 0; i < s->count; i++) {
         if (i > 0) printf(", ");
@@ -70,14 +70,14 @@ int main(int argc, char **argv) {
     char *text = read_entire_file(filename, &estado_lectura);
     if (!text) {
         if (estado_lectura == 3) fprintf(stderr, "Error: memoria insuficiente\n");
-        else fprintf(stderr, "Error al leer la gramática\n");
+        else fprintf(stderr, "Error al leer la gramatica\n");
         return estado_lectura;
     }
 
     LL1Grammar g;
     int parse = ll1_grammar_parse(&g, text);
     if (parse != 1) {
-        fprintf(stderr, parse < 0 ? "Error: memoria insuficiente\n" : "Error: gramática vacía o mal formada\n");
+        fprintf(stderr, parse < 0 ? "Error: memoria insuficiente\n" : "Error: gramatica vacia o mal formada\n");
         ll1_grammar_free(&g);
         free(text);
         return parse < 0 ? 3 : 2;
@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
         return 3;
     }
 
-    /* Reservar antes de imprimir para no comunicar éxito si falla la salida. */
+    /* Reservar antes de imprimir para no comunicar exito si falla la salida. */
     char **sorted_nt = NULL;
     if (opt_sets) {
         if (g.rule_count <= SIZE_MAX / sizeof(*sorted_nt))
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
                    confs.items[i].non_terminal,
                    confs.items[i].alt1 + 1,
                    confs.items[i].alt2 + 1);
-            print_set_python_style(&confs.items[i].intersection);
+            imprimir_conjunto(&confs.items[i].intersection);
             printf("\n");
         }
     } else {
@@ -134,10 +134,10 @@ int main(int argc, char **argv) {
                 for (size_t r = 0; r < g.rule_count; r++) {
                     if (strcmp(g.rules[r].lhs, nt) == 0) {
                         printf("PRIMERO(%s) = ", nt);
-                        print_set_python_style(&g.rules[r].first);
+                        imprimir_conjunto(&g.rules[r].first);
                         printf("\n");
                         printf("SIGUIENTE(%s) = ", nt);
-                        print_set_python_style(&g.rules[r].follow);
+                        imprimir_conjunto(&g.rules[r].follow);
                         printf("\n");
                         break;
                     }

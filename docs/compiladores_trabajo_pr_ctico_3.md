@@ -39,13 +39,13 @@ Se recomienda separar la entrada en tokens:
 ## Evaluación semántica
 Durante el análisis descendente, se debe construir el resultado de la expresión en forma directa, evaluando:
 - Aritmética común con $+$, $-$, $*$, $/$, $\wedge$
-- Funciones trigonométricas usando funciones como `math.sin`, `math.cos`, etc.
+- Funciones trigonométricas usando funciones como `sin`, `cos`, etc.
 
 Ejemplo:
-```python
-import math
-math.sin(math.pi / 2) + math.cos(0) * 2**2 # -> 1 + 1 * 4 = 5.0
-```
+
+\[
+\sin(\pi/2) + \cos(0)\cdot 2^2 = 1 + 1 \cdot 4 = 5.0
+\]
 
 ## Entregables
 1. Informe técnico (PDF o DOCX) con:

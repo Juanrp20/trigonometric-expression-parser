@@ -1,103 +1,69 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -pedantic -Iinclude -O2
-
-ifeq ($(OS),Windows_NT)
-    # En Windows (MinGW), libasan y libubsan normalmente no vienen por defecto
-    DEBUG_FLAGS = -Wall -Wextra -std=c99 -pedantic -Iinclude -g
-    EXE = .exe
-    RM = cmd /C del /Q /F
-    RUN_TEST = cmd /C $(TEST_BIN)
-    RUN_EXPR_TEST = cmd /C $(TEST_EXPR_BIN)
-    RUN_EVAL_TEST = cmd /C $(TEST_EVAL_BIN)
-    RUN_CONSOLE_TEST = cmd /C $(TEST_CONSOLE_BIN)
-else
-    DEBUG_FLAGS = -Wall -Wextra -std=c99 -pedantic -Iinclude -g -fsanitize=address,undefined
-    EXE =
-    RM = rm -f
-    RUN_TEST = ./$(TEST_BIN)
-    RUN_EXPR_TEST = ./$(TEST_EXPR_BIN)
-    RUN_EVAL_TEST = ./$(TEST_EVAL_BIN)
-    RUN_CONSOLE_TEST = ./$(TEST_CONSOLE_BIN)
-endif
-
-SRC = src/token.c src/lexer.c src/arena.c src/ast.c src/parser.c
-LL1_SRC = src/set.c src/ll1.c
-MAIN_SRC = src/main.c
-MAIN_LL1_SRC = src/main_ll1.c
-TEST_SRC = tests/test_c.c
-EXPR_SRC = src/token.c src/lexer.c src/arena.c src/ast.c src/parser_expr.c
-TEST_EXPR_SRC = tests/test_parser_expr.c
-EVAL_SRC = $(EXPR_SRC) src/evaluador_expr.c
-TEST_EVAL_SRC = tests/test_evaluador_expr.c
-CONSOLE_SRC = $(EVAL_SRC) src/consola_expr.c
-TEST_CONSOLE_SRC = tests/test_consola_expr.c
-HEADERS = $(wildcard include/*.h)
+CFLAGS = -Wall -Wextra -Werror -std=c99 -pedantic -Iinclude -O2
+DEBUG_FLAGS = -Wall -Wextra -Werror -std=c99 -pedantic -Iinclude -g
 LDLIBS = -lm
 
-TARGET = toy_c$(EXE)
-TARGET_LL1 = toy_ll1$(EXE)
-TEST_BIN = test_c$(EXE)
-TEST_EXPR_BIN = test_parser_expr$(EXE)
-TEST_EVAL_BIN = test_evaluador_expr$(EXE)
-TEST_CONSOLE_BIN = test_consola_expr$(EXE)
-TEST_LL1_MEM_BIN = test_ll1_memoria$(EXE)
-TARGET_EXPR = calculadora_expr$(EXE)
+ifeq ($(OS),Windows_NT)
+    EXE = .exe
+    RM = cmd /C del /Q /F
+    RUN = cmd /C
+else
+    EXE =
+    RM = rm -f
+    RUN = ./
+endif
 
-all: $(TARGET) $(TARGET_LL1) $(TARGET_EXPR)
+COMMON_SRC = src/token.c src/lexer.c src/arena.c src/ast.c
+EXPR_SRC = $(COMMON_SRC) src/parser_expr.c src/evaluador_expr.c src/consola_expr.c
+LL1_SRC = src/set.c src/ll1.c
+
+TARGET_EXPR = calculadora_expr$(EXE)
+TARGET_LL1 = verificar_ll1$(EXE)
+
+TEST_PARSER = test_parser_expr$(EXE)
+TEST_EVAL = test_evaluador_expr$(EXE)
+TEST_CONSOLE = test_consola_expr$(EXE)
+TEST_LL1 = test_ll1$(EXE)
+TESTS = $(TEST_PARSER) $(TEST_EVAL) $(TEST_CONSOLE) $(TEST_LL1)
+
+HEADERS = $(wildcard include/*.h)
+
+all: $(TARGET_EXPR) $(TARGET_LL1)
 
 ifeq ($(OS),Windows_NT)
 calculadora_expr: $(TARGET_EXPR)
-toy_c: $(TARGET)
-toy_ll1: $(TARGET_LL1)
+verificar_ll1: $(TARGET_LL1)
 endif
 
-$(TARGET): $(SRC) $(MAIN_SRC) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $(SRC) $(MAIN_SRC)
+$(TARGET_EXPR): $(EXPR_SRC) src/main_expr.c $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ $(EXPR_SRC) src/main_expr.c $(LDLIBS)
 
-$(TARGET_LL1): $(LL1_SRC) $(MAIN_LL1_SRC) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $(LL1_SRC) $(MAIN_LL1_SRC)
+$(TARGET_LL1): $(LL1_SRC) src/main_verificar_ll1.c $(HEADERS)
+	$(CC) $(CFLAGS) -o $@ $(LL1_SRC) src/main_verificar_ll1.c
 
-$(TARGET_EXPR): $(CONSOLE_SRC) src/main_expr.c $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $(CONSOLE_SRC) src/main_expr.c $(LDLIBS)
+debug: $(EXPR_SRC) $(LL1_SRC) src/main_expr.c src/main_verificar_ll1.c $(HEADERS)
+	$(CC) $(DEBUG_FLAGS) -o $(TARGET_EXPR) $(EXPR_SRC) src/main_expr.c $(LDLIBS)
+	$(CC) $(DEBUG_FLAGS) -o $(TARGET_LL1) $(LL1_SRC) src/main_verificar_ll1.c
 
-debug: $(SRC) $(LL1_SRC) $(MAIN_SRC) $(MAIN_LL1_SRC) $(CONSOLE_SRC) src/main_expr.c
-	$(CC) $(DEBUG_FLAGS) -o $(TARGET) $(SRC) $(MAIN_SRC)
-	$(CC) $(DEBUG_FLAGS) -o $(TARGET_LL1) $(LL1_SRC) $(MAIN_LL1_SRC)
-	$(CC) $(DEBUG_FLAGS) -o $(TARGET_EXPR) $(CONSOLE_SRC) src/main_expr.c $(LDLIBS)
+$(TEST_PARSER): $(COMMON_SRC) src/parser_expr.c tests/test_parser_expr.c $(HEADERS)
+	$(CC) $(DEBUG_FLAGS) -o $@ $(COMMON_SRC) src/parser_expr.c tests/test_parser_expr.c
 
-$(TEST_BIN): $(SRC) $(LL1_SRC) $(TEST_SRC) $(HEADERS)
-	$(CC) $(DEBUG_FLAGS) -o $@ $(SRC) $(LL1_SRC) $(TEST_SRC)
+$(TEST_EVAL): $(COMMON_SRC) src/parser_expr.c src/evaluador_expr.c tests/test_evaluador_expr.c $(HEADERS)
+	$(CC) $(DEBUG_FLAGS) -o $@ $(COMMON_SRC) src/parser_expr.c src/evaluador_expr.c tests/test_evaluador_expr.c $(LDLIBS)
 
-$(TEST_EXPR_BIN): $(EXPR_SRC) $(TEST_EXPR_SRC) $(HEADERS)
-	$(CC) $(DEBUG_FLAGS) -o $@ $(EXPR_SRC) $(TEST_EXPR_SRC)
+$(TEST_CONSOLE): $(EXPR_SRC) tests/test_consola_expr.c $(HEADERS)
+	$(CC) $(DEBUG_FLAGS) -o $@ $(EXPR_SRC) tests/test_consola_expr.c $(LDLIBS)
 
-$(TEST_EVAL_BIN): $(EVAL_SRC) $(TEST_EVAL_SRC) $(HEADERS)
-	$(CC) $(DEBUG_FLAGS) -o $@ $(EVAL_SRC) $(TEST_EVAL_SRC) $(LDLIBS)
+$(TEST_LL1): $(LL1_SRC) tests/test_ll1.c $(HEADERS)
+	$(CC) $(DEBUG_FLAGS) -o $@ $(LL1_SRC) tests/test_ll1.c
 
-$(TEST_CONSOLE_BIN): $(CONSOLE_SRC) $(TEST_CONSOLE_SRC) $(HEADERS)
-	$(CC) $(DEBUG_FLAGS) -o $@ $(CONSOLE_SRC) $(TEST_CONSOLE_SRC) $(LDLIBS)
-
-test: $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN)
-	$(RUN_TEST)
-	$(RUN_EXPR_TEST)
-	$(RUN_EVAL_TEST)
-	$(RUN_CONSOLE_TEST)
-
-ifeq ($(OS),Windows_NT)
-test-ll1-memoria:
-	@echo Prueba disponible en Linux con GCC y GNU ld.
-	@exit 1
-else
-$(TEST_LL1_MEM_BIN): $(LL1_SRC) src/main_ll1.c tests/test_ll1_memoria.c tests/ll1_memoria_gramatica.txt tests/ll1_memoria_sin_conflictos.txt $(HEADERS)
-	$(CC) $(DEBUG_FLAGS) -Wl,--wrap=malloc -Wl,--wrap=realloc -Wl,--wrap=free -o $@ $(LL1_SRC) tests/test_ll1_memoria.c
-
-test-ll1-memoria: $(TEST_LL1_MEM_BIN)
-	./$(TEST_LL1_MEM_BIN)
-endif
+test: $(TESTS)
+	$(RUN)test_parser_expr$(EXE)
+	$(RUN)test_evaluador_expr$(EXE)
+	$(RUN)test_consola_expr$(EXE)
+	$(RUN)test_ll1$(EXE)
 
 clean:
-	-$(RM) $(TARGET) $(TARGET_LL1) $(TARGET_EXPR) $(TEST_BIN) $(TEST_EXPR_BIN) $(TEST_EVAL_BIN) $(TEST_CONSOLE_BIN) $(TEST_LL1_MEM_BIN)
+	-$(RM) $(TARGET_EXPR) $(TARGET_LL1) $(TESTS)
 
-.PHONY: all debug test test-ll1-memoria clean
-
-
+.PHONY: all debug test clean
