@@ -1,6 +1,7 @@
 #include "consola_expr.h"
 #include "evaluador_expr.h"
 #include "expr_limites.h"
+#include "lexer.h"
 #include "parser_expr.h"
 #include <ctype.h>
 #include <errno.h>
@@ -42,6 +43,107 @@ static int leer_linea(FILE *entrada, char **linea) {
     buffer[longitud] = '\0';
     *linea = buffer;
     return 1;
+}
+
+/* 1: archivo leido completo, 0: error de apertura, lectura o memoria. */
+static int leer_archivo_completo(const char *ruta, char **texto, FILE *errores) {
+    *texto = NULL;
+    FILE *f = fopen(ruta, "rb");
+    if (!f) {
+        fprintf(errores, "Error al abrir archivo '%s'\n", ruta);
+        return 0;
+    }
+    if (fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        fprintf(errores, "Error al leer archivo '%s'\n", ruta);
+        return 0;
+    }
+    long tamano = ftell(f);
+    if (tamano < 0 || fseek(f, 0, SEEK_SET) != 0) {
+        fclose(f);
+        fprintf(errores, "Error al leer archivo '%s'\n", ruta);
+        return 0;
+    }
+    if ((uintmax_t)tamano >= SIZE_MAX) {
+        fclose(f);
+        fprintf(errores, "Error: archivo demasiado grande\n");
+        return 0;
+    }
+
+    char *buffer = (char *)malloc((size_t)tamano + 1);
+    if (!buffer) {
+        fclose(f);
+        fprintf(errores, "Error: memoria insuficiente\n");
+        return 0;
+    }
+    size_t leidos = fread(buffer, 1, (size_t)tamano, f);
+    if (ferror(f)) {
+        free(buffer);
+        fclose(f);
+        fprintf(errores, "Error al leer archivo '%s'\n", ruta);
+        return 0;
+    }
+    fclose(f);
+    buffer[leidos] = '\0';
+
+    if (strlen(buffer) != leidos) {
+        free(buffer);
+        fprintf(errores, "Error: el archivo contiene un byte nulo\n");
+        return 0;
+    }
+
+    *texto = buffer;
+    return 1;
+}
+
+int consola_expr_mostrar_tokens(const char *texto, FILE *salida, FILE *errores) {
+    Lexer lexer;
+    lexer_init(&lexer, texto ? texto : "");
+    int estado = 0;
+
+    for (;;) {
+        Token tok = lexer_siguiente(&lexer);
+        if (tok.kind == TOK_ERROR) {
+            fflush(salida);
+            fprintf(errores, "Error lexico: Linea %d, columna %d: %s\n",
+                    tok.line, tok.col,
+                    tok.lexeme ? tok.lexeme : "memoria insuficiente");
+            token_free(&tok);
+            estado = 2;
+            break;
+        }
+        if (tok.kind == TOK_EOF) {
+            fprintf(salida, "%s\n", token_kind_to_str(tok.kind));
+            token_free(&tok);
+            break;
+        }
+        fprintf(salida, "%s %s\n", token_kind_to_str(tok.kind),
+                tok.lexeme ? tok.lexeme : "");
+        token_free(&tok);
+    }
+
+    lexer_destroy(&lexer);
+    if (ferror(salida)) {
+        fprintf(errores, "Error al escribir la salida de tokens\n");
+        return 1;
+    }
+    return estado;
+}
+
+int consola_expr_tokens_archivo(const char *ruta, FILE *salida, FILE *errores) {
+    if (!ruta) {
+        fprintf(errores, "Error: ruta de archivo ausente\n");
+        return 1;
+    }
+
+    char *texto = NULL;
+    if (!leer_archivo_completo(ruta, &texto, errores)) {
+        return 1;
+    }
+
+    int estado = consola_expr_mostrar_tokens(texto, salida, errores);
+    free(texto);
+    return estado;
 }
 
 static int agregar_variable(Variables *vars, const char *nombre) {
