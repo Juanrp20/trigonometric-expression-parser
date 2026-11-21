@@ -8,6 +8,10 @@
 /test_evaluador_expr.exe
 /test_consola_expr
 /test_consola_expr.exe
+/test_tokens
+/test_tokens.exe
+/test_tokens_cli
+/test_tokens_cli.exe
 /test_ll1
 /test_ll1.exe
 /test_ll1_cli
