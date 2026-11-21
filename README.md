@@ -2,6 +2,28 @@
 
 Calculadora de consola escrita en C99. Reconoce expresiones aritméticas y trigonométricas, pide el valor de cada variable y devuelve un resultado `double`.
 
+## Inicio rápido
+
+### Windows
+
+```bat
+.\build.bat all
+.\calculadora_expr.exe
+.\calculadora_expr.exe --tokens ejemplos\expresion.txt
+.\build.bat test
+```
+
+### Linux
+
+```bash
+make all
+./calculadora_expr
+./calculadora_expr --tokens ejemplos/expresion.txt
+make test
+```
+
+Si `build.bat test` termina mostrando varias líneas `OK`, el proyecto compiló y todas las suites pasaron.
+
 ## Características
 
 - Gramática LL(1), lexer propio y parser descendente recursivo.
@@ -22,7 +44,8 @@ src/      implementaciones y puntos de entrada
   lexer.c, token.c, ast.c, arena.c  componentes del analizador
   main_verificar_ll1.c, ll1.c, set.c verificador de la gramática
 gramatica/ gramática EBNF de las expresiones
-tests/    cinco suites C: parser, evaluador, consola, API LL(1) y CLI del verificador
+ejemplos/ expresiones de ejemplo para el modo --tokens
+tests/    siete suites C: parser, evaluador, consola, tokens, API LL(1) y dos CLI
 docs/     enunciado, gramática, casos, trazabilidad e informe
 Makefile  compilación en Linux
 build.bat compilación en Windows con MinGW-w64
@@ -63,7 +86,7 @@ Desde `cmd`, en la raíz del repositorio:
 .\build.bat clean
 ```
 
-`.\build.bat test` compila y ejecuta las cinco suites C. No necesita MSYS shell, `make` ni herramientas GNU adicionales.
+`.\build.bat test` compila y ejecuta las siete suites C. No necesita MSYS shell, `make` ni herramientas GNU adicionales.
 
 ## Compilación manual con GCC
 
@@ -97,6 +120,45 @@ Los literales de la expresión son enteros o decimales con dígitos a ambos lado
 
 Códigos de salida: `0` éxito, `1` error de lectura o recursos, `2` expresión inválida, `3` EOF, `4` error matemático.
 
+## Inspeccionar tokens
+
+El modo `--tokens` ejecuta únicamente el analizador léxico. No valida la sintaxis ni evalúa la expresión:
+
+```bat
+.\calculadora_expr.exe --tokens ejemplos\expresion.txt
+```
+
+Salida:
+
+```text
+TOK-SIN sin
+TOK-LPAR (
+TOK-ID x
+TOK-RPAR )
+TOK-PLUS +
+TOK-COS cos
+TOK-LPAR (
+TOK-ID y
+TOK-RPAR )
+TOK-MUL *
+TOK-NUMBER 2
+TOK-EOF
+```
+
+El flag puede ir antes o después del archivo. En Linux:
+
+```bash
+./calculadora_expr --tokens ejemplos/expresion.txt
+```
+
+Códigos del modo: `0` éxito, `1` error de archivo o memoria, `2` error léxico. Un error léxico se informa con línea y columna:
+
+```text
+Error lexico: Linea 1, columna 6: caracter ',' no valido
+```
+
+El archivo `ejemplos/error_lexico.txt` reproduce ese caso.
+
 ## Pruebas y verificación LL(1)
 
 `make test` o `build.bat test` ejecuta:
@@ -104,6 +166,8 @@ Códigos de salida: `0` éxito, `1` error de lectura o recursos, `2` expresión 
 - `test_parser_expr`: expresiones válidas e inválidas, precedencia, diagnósticos y límites.
 - `test_evaluador_expr`: aritmética, trigonometría, variables, errores y profundidad.
 - `test_consola_expr`: casos del enunciado, variables, reintentos, EOF y errores.
+- `test_tokens`: volcado de tokens, errores léxicos con línea/columna y lectura de archivos.
+- `test_tokens_cli`: ejecuta `calculadora_expr` con `--tokens`, comprueba códigos, salida y archivos ausentes.
 - `test_ll1`: lee `gramatica/expresiones_matematicas.txt` y comprueba la API con la gramática real, gramáticas inválidas y detección de conflictos.
 - `test_ll1_cli`: ejecuta `verificar_ll1` desde la raíz del repositorio con `system()`, comprueba códigos y mensajes, y limpia sus archivos `.tmp`.
 
@@ -112,7 +176,13 @@ Los esperados numéricos son constantes fijas en los tests; no se calculan con `
 El verificador también se ejecuta de forma independiente:
 
 ```bash
-.\verificar_ll1 gramatica/expresiones_matematicas.txt --sets
+./verificar_ll1 gramatica/expresiones_matematicas.txt --sets
+```
+
+En Windows:
+
+```bat
+.\verificar_ll1.exe gramatica\expresiones_matematicas.txt --sets
 ```
 
 La salida `ninguno` indica cero conflictos. Códigos: `0` sin conflictos, `1` conflictos o error de lectura, `2` gramática vacía o mal formada, `3` fallo de reserva.

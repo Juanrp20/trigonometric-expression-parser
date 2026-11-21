@@ -41,7 +41,7 @@ La identidad `cos(x)^2+sin(x)^2 ≈ 1` se ejecutó con x = −7, −1, 0, 0.5, 3
 | M03 | `(-1)^0.5` | error matemático | código 4, dominio real | raíz real de negativo | Pasa |
 | M04 | `10^1000` | error matemático | código 4, fuera de rango | desbordamiento | Pasa |
 
-Las cinco suites C cubren además `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos, diferencias entre mayúsculas y minúsculas, límites de profundidad, la API del verificador LL(1) y el ejecutable `verificar_ll1` mediante `test_ll1_cli`.
+Las siete suites C cubren además `sen`, datos de variables vacíos, no numéricos, `NaN`, infinito y fuera de rango, reintentos, EOF, nombres largos, diferencias entre mayúsculas y minúsculas, límites de profundidad, la API del verificador LL(1), el ejecutable `verificar_ll1` mediante `test_ll1_cli` y el volcado de tokens con `test_tokens` y `test_tokens_cli`.
 
 Para reproducir la validación:
 
